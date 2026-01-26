@@ -1,0 +1,75 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: secret123
+      POSTGRES_DB: vistalock_local
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d vistalock_local" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: apps/auth-service/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://user:secret123@postgres:5432/vistalock_local
+      PORT: 3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  device-service:
+    build:
+      context: .
+      dockerfile: apps/device-service/Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      DATABASE_URL: postgresql://user:secret123@postgres:5432/vistalock_local
+      PORT: 3002
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  loan-service:
+    build:
+      context: .
+      dockerfile: apps/loan-service/Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      DATABASE_URL: postgresql://user:secret123@postgres:5432/vistalock_local
+      PORT: 3003
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: apps/api-gateway/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      AUTH_SERVICE_URL: http://auth-service:3001
+      DEVICE_SERVICE_URL: http://device-service:3002
+      LOAN_SERVICE_URL: http://loan-service:3003
+    depends_on:
+      - auth-service
+      - device-service
+      - loan-service
+
+volumes:
+  postgres_data:

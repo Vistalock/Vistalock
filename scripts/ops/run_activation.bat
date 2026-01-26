@@ -1,0 +1,1 @@
+"C:\Users\abc\AppData\Local\Android\Sdk\platform-tools\adb.exe" shell am start -W -a android.intent.action.VIEW -d "vistalock://activate?token=295ed5caff0aa51a37d9e4d0e2a017386951a1ae047a0c32e64b089a8b746788"

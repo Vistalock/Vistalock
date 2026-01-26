@@ -1,0 +1,65 @@
+
+// ==================== CREDIT SERVICE MODELS ====================
+
+model CreditCheck {
+  id               String   @id @default(uuid())
+  checkId          String   @unique
+  
+  // Request Info
+  merchantId       String
+  agentId          String
+  phoneNumber      String
+  nin              String
+  bvn              String?
+  requestedPrice   Float
+  
+  // Decision
+  decision         String   // APPROVED, APPROVED_WITH_LIMITS, REJECTED
+  score            Int
+  maxDeviceValue   Float?
+  minDownPayment   Float?
+  allowedTenure    String?  // JSON array: [3,6,9,12]
+  interestRate     Float?
+  creditRating     String?  // EXCELLENT, GOOD, FAIR, POOR
+  
+  // Rejection Info
+  reasonCode       String?
+  reasonMessage    String?
+  
+  // Fraud Detection
+  fraudDetected    Boolean  @default(false)
+  fraudReasons     String?  // JSON array
+  riskScore        Int?
+  
+  // Audit
+  createdAt        DateTime @default(now())
+  
+  @@index([merchantId])
+  @@index([agentId])
+  @@index([phoneNumber])
+  @@index([nin])
+  @@index([createdAt])
+}
+
+model Blacklist {
+  id           String   @id @default(uuid())
+  
+  // Identifiers
+  nin          String?
+  bvn          String?
+  phoneNumber  String?
+  
+  // Blacklist Info
+  reason       String
+  addedBy      String?  // Admin user ID
+  addedAt      DateTime @default(now())
+  expiresAt    DateTime? // Optional expiration
+  
+  // Status
+  isActive     Boolean  @default(true)
+  
+  @@index([nin])
+  @@index([bvn])
+  @@index([phoneNumber])
+  @@index([isActive])
+}

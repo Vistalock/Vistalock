@@ -1,0 +1,544 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN // Deprecated, migrate to specific roles
+  SUPER_ADMIN // Root Authority
+  OPS_ADMIN // Operations
+  RISK_ADMIN // Risk & Credit
+  COMPLIANCE_ADMIN // Legal & Compliance
+  TECH_ADMIN // Technical / Platform
+  SUPPORT_ADMIN // Customer Support
+  MERCHANT
+  MERCHANT_AGENT // New: For sub-accounts
+  CUSTOMER
+}
+
+enum SubscriptionPlan {
+  STARTER
+  GROWTH
+  ENTERPRISE
+}
+
+enum KycStatus {
+  PENDING
+  VERIFIED
+  FAILED
+}
+
+model User {
+  id       String  @id @default(uuid())
+  email    String  @unique
+  password String?
+  role     Role    @default(CUSTOMER)
+  isActive Boolean @default(true)
+
+  apiKey           String?          @unique
+  subscriptionPlan SubscriptionPlan @default(STARTER)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  loans           Loan[]
+  merchantLoans   Loan[]           @relation("MerchantLoans")
+  devices         Device[]
+  products        Product[]
+  transactions    Transaction[]
+  customerProfile CustomerProfile?
+  merchantProfile MerchantProfile?
+  agentProfile    AgentProfile?
+
+  // Agent Relation
+  merchantId String?
+  merchant   User?   @relation("MerchantAgents", fields: [merchantId], references: [id])
+  agents     User[]  @relation("MerchantAgents")
+
+  // Audit
+  auditLogs      AuditLog[]
+  agentLoginLogs AgentLoginLog[]
+}
+
+model AgentProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  fullName        String
+  phoneNumber     String
+  branch          String
+  onboardingLimit Int         @default(0)
+  status          AgentStatus @default(PENDING)
+
+  // Security & Activation
+  activationToken     String?   @unique
+  activationExpiresAt DateTime?
+  deviceId            String? // Bound Mobile Device ID (IMEI/AndroidID)
+  isActivated         Boolean   @default(false)
+  lastLoginAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum AgentStatus {
+  PENDING
+  ACTIVE
+  DEACTIVATED
+}
+
+model AgentLoginLog {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  deviceId   String?
+  ipAddress  String?
+  success    Boolean
+  failReason String? // e.g., "Invalid password", "Device mismatch", "Account deactivated"
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String
+  entityId   String?
+  entityType String?
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  details    Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+}
+
+model SystemConfig {
+  id                 String  @id @default(uuid())
+  defaultGracePeriod Int     @default(3)
+  currency           String  @default("NGN")
+  strictMode         Boolean @default(true)
+  offlineLocking     Boolean @default(true)
+  emergencyPause     Boolean @default(false)
+  supportEmail       String  @default("support@vistalock.com")
+  emergencyPhone     String  @default("+234 800 VISTA")
+
+  // Enforcement Rules
+  lockEscalationStages Json    @default("[\"REMINDER\", \"SOFT_LOCK\", \"FULL_LOCK\"]")
+  lockRetryFrequency   Int     @default(24) // Hours
+  offlineLockTimeout   Int     @default(168) // Hours (7 days)
+  autoUnlockOnPayment  Boolean @default(true)
+
+  // Device Control
+  supportedDeviceTypes Json   @default("[\"ANDROID\"]")
+  minAgentVersion      String @default("1.0.0")
+
+  // Risk & Credit
+  defaultInterestRate Decimal @default(0.0)
+  defaultMaxTenure    Int     @default(12)
+
+  // Compliance
+  complianceConfig Json? // Templates, retention policies
+
+  updatedAt DateTime @updatedAt
+}
+
+enum ApplicationStatus {
+  PENDING
+  OPS_REVIEWED
+  RISK_REVIEWED
+  APPROVED
+  REJECTED
+}
+
+model MerchantApplication {
+  id String @id @default(uuid())
+
+  // 1. Business Info
+  businessName        String // Legal Name
+  tradingName         String?
+  businessType        String? // Sole Prop, LLC, etc.
+  cacNumber           String?
+  dateOfIncorporation DateTime?
+  natureOfBusiness    String?
+  website             String?
+
+  // 2. Contact & Address
+  contactName      String
+  email            String
+  phone            String
+  businessAddress  String // Registered
+  operatingAddress String?
+
+  // 3-9. Complex Data (Stored as JSON for flexibility during application)
+  directors     Json? // [{ name, dob, nationality, address, idType, idNumber, share }]
+  signatories   Json? // [{ name, role, contact, idNumber }]
+  bankDetails   Json? // { bankName, accountName, accountNumber, bvn, settlementCycle }
+  operations    Json? // { yearsInOp, outlets, monthlyVolume, avgPrice, salesChannels }
+  deviceDetails Json? // { types, specs, source, support } - Replaces simple deviceTypes
+  agentDetails  Json? // { expectedCount, location, onboardingMethod }
+  documents     Json? // URL links to uploaded files { certificate, cacStatus, utilityBill, ids, etc }
+  compliance    Json? // { agreedToDataProcessing, agreedToLocking, etc }
+
+  status ApplicationStatus @default(PENDING)
+
+  processedBy     String? // Last Admin ID who touched this
+  rejectionReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CustomerProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  phoneNumber String  @unique
+  bvn         String? @unique
+  nin         String? @unique
+
+  firstName   String?
+  lastName    String?
+  dateOfBirth DateTime?
+  address     String?
+  photoUrl    String?
+
+  kycStatus   KycStatus @default(PENDING)
+  creditScore Int?      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OtpRequest {
+  id          String   @id @default(uuid())
+  phoneNumber String
+  code        String
+  expiresAt   DateTime
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+enum DeviceStatus {
+  LOCKED
+  UNLOCKED
+  PENDING_SETUP
+}
+
+model Device {
+  id           String       @id @default(uuid())
+  imei         String       @unique
+  serialNumber String?
+  model        String?
+  status       DeviceStatus @default(PENDING_SETUP)
+
+  merchantId String
+  merchant   User   @relation(fields: [merchantId], references: [id])
+  loans      Loan[]
+
+  lastHeartbeat DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum TransactionType {
+  PAYMENT
+  DISBURSEMENT
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum MerchantStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum BusinessType {
+  SOLE_PROPRIETORSHIP
+  LIMITED_LIABILITY
+  ENTERPRISE
+}
+
+model MerchantProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  // Business Info
+  businessName        String
+  businessType        BusinessType
+  rcNumber            String       @unique // Registration Number
+  dateOfIncorporation DateTime?
+  businessAddress     String
+  operatingAddress    String?
+
+  // Director KYC
+  directorName  String
+  directorPhone String
+  directorNin   String? // National Identity Number
+
+  // Financial Info
+  bankName      String?
+  accountNumber String?
+  accountName   String?
+  revenueShare  Decimal @default(0.0) // Percentage
+
+  // Compliance
+  documents        Json? // { cacAttributes, directorId, merchantAgreement }
+  agreementsSigned Boolean @default(false)
+
+  status MerchantStatus @default(PENDING)
+
+  // Package / Limits
+  maxDevices         Int   @default(10)
+  maxAgents          Int   @default(2)
+  enabledDeviceTypes Json? @default("[\"ANDROID\"]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Transaction {
+  id        String            @id @default(uuid())
+  amount    Decimal
+  currency  String            @default("NGN")
+  type      TransactionType
+  status    TransactionStatus @default(PENDING)
+  reference String            @unique // Paystack Ref
+
+  loanId String
+  loan   Loan   @relation(fields: [loanId], references: [id])
+
+  merchantId String
+  merchant   User   @relation(fields: [merchantId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id String @id @default(uuid())
+
+  name        String
+  description String?
+  sku         String?
+
+  // Pricing
+  price    Decimal @default(0.0)
+  currency String  @default("NGN")
+
+  // BNPL Terms (Product Specific Defaults)
+  minDownPayment Decimal @default(0.0)
+  minTenure      Int     @default(3) // Months
+  maxTenure      Int     @default(12) // Months
+  interestRate   Decimal @default(2.5) // Monthly Interest %
+
+  // Inventory
+  stockQuantity Int     @default(0)
+  category      String? // PHONE, LAPTOP, etc.
+
+  itemType String? @default("PHYSICAL") // PHYSICAL, DIGITAL, SERVICE
+
+  merchantId String
+  merchant   User   @relation(fields: [merchantId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Loan      Loan[]
+}
+
+// ==================== CREDIT SERVICE MODELS ====================
+
+// ==================== CREDIT SERVICE MODELS ====================
+
+model CreditCheck {
+  id      String @id @default(uuid())
+  checkId String @unique
+
+  merchantId     String
+  agentId        String
+  phoneNumber    String
+  nin            String
+  bvn            String?
+  requestedPrice Float
+
+  decision       String
+  score          Int
+  maxDeviceValue Float?
+  minDownPayment Float?
+  allowedTenure  String?
+  interestRate   Float?
+  creditRating   String?
+
+  reasonCode    String?
+  reasonMessage String?
+
+  fraudDetected Boolean @default(false)
+  fraudReasons  String?
+  riskScore     Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([merchantId])
+  @@index([agentId])
+  @@index([phoneNumber])
+  @@index([nin])
+  @@index([createdAt])
+}
+
+model Blacklist {
+  id String @id @default(uuid())
+
+  nin         String?
+  bvn         String?
+  phoneNumber String?
+
+  reason    String
+  addedBy   String?
+  addedAt   DateTime  @default(now())
+  expiresAt DateTime?
+
+  isActive Boolean @default(true)
+
+  @@index([nin])
+  @@index([bvn])
+  @@index([phoneNumber])
+  @@index([isActive])
+}
+
+// ==================== ENHANCED LOAN MODELS (Production-Grade) ====================
+
+enum LoanStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  DEFAULTED
+  LOCKED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  LATE
+  MISSED
+  PARTIAL
+}
+
+model Loan {
+  id String @id @default(uuid())
+
+  // Customer Information
+  userId        String
+  user          User    @relation(fields: [userId], references: [id])
+  customerNIN   String // For quick lookup
+  customerBVN   String?
+  customerPhone String
+
+  // Device Information
+  deviceIMEI String
+  device     Device  @relation(fields: [deviceIMEI], references: [imei])
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
+
+  // Merchant/Agent
+  merchantId String
+  merchant   User    @relation("MerchantLoans", fields: [merchantId], references: [id])
+  agentId    String?
+
+  // Loan Terms
+  loanAmount       Float
+  downPayment      Float
+  monthlyRepayment Float
+  tenure           Int // Months
+  interestRate     Float // Monthly rate
+  totalRepayment   Float
+
+  // Status
+  status LoanStatus @default(PENDING)
+
+  // Repayment Tracking
+  paymentsOnTime    Int   @default(0)
+  paymentsLate      Int   @default(0)
+  paymentsMissed    Int   @default(0)
+  totalPayments     Int   @default(0)
+  paidAmount        Float @default(0)
+  outstandingAmount Float
+
+  // Payment Schedule
+  nextPaymentDue  DateTime?
+  lastPaymentDate DateTime?
+
+  // Lock History
+  lockCount      Int       @default(0)
+  isLocked       Boolean   @default(false)
+  lastLockedAt   DateTime?
+  lastUnlockedAt DateTime?
+
+  // Credit Check Reference
+  creditCheckId String?
+  creditScore   Int?
+
+  // Timestamps
+  approvedAt  DateTime?
+  completedAt DateTime?
+  defaultedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  payments     Payment[]
+  transactions Transaction[]
+
+  @@index([userId])
+  @@index([customerNIN])
+  @@index([customerBVN])
+  @@index([customerPhone])
+  @@index([deviceIMEI])
+  @@index([merchantId])
+  @@index([status])
+  @@index([nextPaymentDue])
+}
+
+model Payment {
+  id String @id @default(uuid())
+
+  loanId String
+  loan   Loan   @relation(fields: [loanId], references: [id])
+
+  // Payment Details
+  amount     Float
+  dueDate    DateTime
+  paidDate   DateTime?
+  paidAmount Float?
+
+  // Status
+  status   PaymentStatus @default(PENDING)
+  daysLate Int           @default(0)
+
+  // Payment Method
+  paymentMethod String? // BANK_TRANSFER, CARD, CASH, etc.
+  reference     String? // Payment reference
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([loanId])
+  @@index([status])
+  @@index([dueDate])
+}

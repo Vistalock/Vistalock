@@ -1,0 +1,153 @@
+version: '3.8'
+
+services:
+  # --- Infrastructure ---
+  postgres:
+    image: postgres:16-alpine
+    container_name: vistalock_prod_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: secret123
+      POSTGRES_DB: vistalock_prod
+    ports:
+      - "5433:5432" # Exposed for backup access, restrict in real prod
+    volumes:
+      - prod_postgres_data:/var/lib/postgresql/data
+    restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d vistalock_prod" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- Backends ---
+  auth-service:
+    build:
+      context: .
+      dockerfile: apps/auth-service/Dockerfile
+    container_name: vistalock_prod_auth
+    environment:
+      DATABASE_URL: postgresql://user:secret123@postgres:5432/vistalock_prod
+      PORT: 3001
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+
+  device-service:
+    build:
+      context: .
+      dockerfile: apps/device-service/Dockerfile
+    container_name: vistalock_prod_device
+    environment:
+      DATABASE_URL: postgresql://user:secret123@postgres:5432/vistalock_prod
+      PORT: 3002
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+
+  loan-service:
+    build:
+      context: .
+      dockerfile: apps/loan-service/Dockerfile
+    container_name: vistalock_prod_loan
+    environment:
+      DATABASE_URL: postgresql://user:secret123@postgres:5432/vistalock_prod
+      PORT: 3003
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: apps/api-gateway/Dockerfile
+    container_name: vistalock_prod_gateway
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      AUTH_SERVICE_URL: http://auth-service:3001
+      DEVICE_SERVICE_URL: http://device-service:3002
+      LOAN_SERVICE_URL: http://loan-service:3003
+    depends_on:
+      - auth-service
+      - device-service
+      - loan-service
+    restart: always
+
+  # --- Frontends ---
+  web-landing:
+    build:
+      context: .
+      dockerfile: apps/web-landing/Dockerfile
+    container_name: vistalock_prod_landing
+    ports:
+      - "3003:3003" # Public Landing
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3000 # Client-side calls Gateway
+      NODE_ENV: production
+    restart: always
+
+  web-dashboard:
+    build:
+      context: .
+      dockerfile: apps/web-dashboard/Dockerfile
+    container_name: vistalock_prod_dashboard
+    ports:
+      - "3004:3004" # Merchant Dashboard
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+      NODE_ENV: production
+    restart: always
+
+  customer-portal:
+    build:
+      context: .
+      dockerfile: apps/customer-portal/Dockerfile
+    container_name: vistalock_prod_portal
+    ports:
+      - "3005:3005" # Customer PWA
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+      NODE_ENV: production
+    restart: always
+
+  # --- Monitoring ---
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: vistalock_prod_prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - vistalock_network
+    restart: always
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: vistalock_prod_grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - vistalock_network
+    restart: always
+    depends_on:
+      - prometheus
+
+volumes:
+  prod_postgres_data:
+
+
+networks:
+  vistalock_network:
+    driver: bridge

@@ -1,0 +1,52 @@
+name: CD Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Log in to the Container registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Build and push Core Services
+      run: |
+        # Use docker-compose prod file to build all services
+        # Note: This builds them locally, we might want to tag and push individually
+        # For simplicity, we'll build and push key services manually
+        
+        docker build -t $REGISTRY/$IMAGE_NAME/auth-service:latest -f apps/auth-service/Dockerfile .
+        docker push $REGISTRY/$IMAGE_NAME/auth-service:latest
+        
+        docker build -t $REGISTRY/$IMAGE_NAME/device-service:latest -f apps/device-service/Dockerfile .
+        docker push $REGISTRY/$IMAGE_NAME/device-service:latest
+        
+        docker build -t $REGISTRY/$IMAGE_NAME/loan-service:latest -f apps/loan-service/Dockerfile .
+        docker push $REGISTRY/$IMAGE_NAME/loan-service:latest
+        
+        docker build -t $REGISTRY/$IMAGE_NAME/api-gateway:latest -f apps/api-gateway/Dockerfile .
+        docker push $REGISTRY/$IMAGE_NAME/api-gateway:latest
+        
+    - name: Build and push Frontends
+      run: |
+        docker build -t $REGISTRY/$IMAGE_NAME/customer-portal:latest -f apps/customer-portal/Dockerfile .
+        docker push $REGISTRY/$IMAGE_NAME/customer-portal:latest
+        
+        docker build -t $REGISTRY/$IMAGE_NAME/web-dashboard:latest -f apps/web-dashboard/Dockerfile .
+        docker push $REGISTRY/$IMAGE_NAME/web-dashboard:latest

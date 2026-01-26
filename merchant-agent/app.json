@@ -1,0 +1,31 @@
+{
+    "expo": {
+        "name": "Vistalock Merchant Agent",
+        "slug": "vistalock-merchant-agent",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "userInterfaceStyle": "light",
+        "scheme": "vistalock",
+        "assetBundlePatterns": [
+            "**/*"
+        ],
+        "ios": {
+            "supportsTablet": true,
+            "bundleIdentifier": "com.vistalock.merchantagent"
+        },
+        "android": {
+            "package": "com.vistalock.merchantagent",
+            "permissions": [
+                "CAMERA",
+                "READ_PHONE_STATE"
+            ]
+        },
+        "web": {},
+        "plugins": [
+            "expo-router"
+        ],
+        "experiments": {
+            "typedRoutes": true
+        }
+    }
+}

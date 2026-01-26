@@ -1,0 +1,59 @@
+
+import { Controller, Post, Get, Body, Param, UseGuards, Request, UnauthorizedException, UsePipes, ValidationPipe } from '@nestjs/common';
+import { MerchantApplicationService } from './merchant-application.service';
+import { AuthGuard } from '@nestjs/passport';
+import { CreateMerchantApplicationDto } from './dto/create-merchant-application.dto';
+
+@Controller()
+export class MerchantApplicationController {
+    constructor(private appService: MerchantApplicationService) { }
+
+    // PUBLIC: Submit Application (Strictly Validated)
+    @Post('auth/merchant/apply')
+    @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+    async submitApplication(@Body() body: CreateMerchantApplicationDto) {
+        return this.appService.submitApplication(body);
+    }
+
+    // PROTECTED: List Applications (Admin Only)
+    @UseGuards(AuthGuard('jwt'))
+    @Get('admin/merchant-applications')
+    async getApplications(@Request() req) {
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'OPS_ADMIN') {
+            throw new UnauthorizedException('Access denied');
+        }
+        return this.appService.getApplications();
+    }
+
+    // ADMIN: Ops Review
+    @UseGuards(AuthGuard('jwt'))
+    @Post('admin/merchant-applications/:id/review-ops')
+    async reviewByOps(@Request() req, @Param('id') id: string) {
+        return this.appService.reviewByOps(id, req.user.userId);
+    }
+
+    // ADMIN: Risk Review
+    @UseGuards(AuthGuard('jwt'))
+    @Post('admin/merchant-applications/:id/review-risk')
+    async reviewByRisk(@Request() req, @Param('id') id: string) {
+        return this.appService.reviewByRisk(id, req.user.userId);
+    }
+
+    // ADMIN: Final Approval
+    @UseGuards(AuthGuard('jwt'))
+    @Post('admin/merchant-applications/:id/approve')
+    async approveApplication(@Request() req, @Param('id') id: string) {
+        // In real system, check for SUPER_ADMIN role here
+        return this.appService.approveApplication(id, req.user.userId);
+    }
+
+    // PROTECTED: Reject Application
+    @UseGuards(AuthGuard('jwt'))
+    @Post('admin/merchant-applications/:id/reject')
+    async rejectApplication(@Request() req, @Param('id') id: string, @Body() body: { reason: string }) {
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'OPS_ADMIN') {
+            throw new UnauthorizedException('Access denied');
+        }
+        return this.appService.rejectApplication(id, req.user.userId, body.reason);
+    }
+}
