@@ -1,7 +1,7 @@
 import { Controller, Get, Patch, Post, Body, Param, UseGuards, Query } from '@nestjs/common';
 import { AdminMerchantService } from './admin-merchant.service';
 import { AuthGuard } from '@nestjs/passport';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
 @Controller('admin/merchants')
 export class AdminMerchantController {

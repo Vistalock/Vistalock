@@ -2,7 +2,7 @@ import { Injectable, ConflictException, NotFoundException, BadRequestException }
 // @ts-ignore
 import { PrismaClient } from '@vistalock/database';
 import { randomBytes } from 'crypto';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
