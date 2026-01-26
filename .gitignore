@@ -45,3 +45,4 @@ prisma/migrations/
 .turbo/
 .next/
 .cache/
+postgres_data_local/
