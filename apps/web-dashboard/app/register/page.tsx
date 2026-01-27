@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Check, Loader2, Building2, User, Landmark, ShieldCheck } from 'lucide-react';
+import { Check, Loader2, Building2, User, Landmark, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
 const STEPS = [
     { id: 1, title: 'Account', icon: User },
@@ -23,6 +23,8 @@ export default function RegisterPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [token, setToken] = useState<string | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -185,15 +187,42 @@ export default function RegisterPage() {
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Password (Min 12 chars, symbols)</Label>
-                                    <Input type="password" required value={formData.password} onChange={e => updateForm('password', e.target.value)} />
+                                    <div className="relative">
+                                        <Input
+                                            type={showPassword ? "text" : "password"}
+                                            required
+                                            value={formData.password}
+                                            onChange={e => updateForm('password', e.target.value)}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                        >
+                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Confirm Password</Label>
-                                    <Input type="password" required value={formData.confirmPassword} onChange={e => updateForm('confirmPassword', e.target.value)} />
+                                    <div className="relative">
+                                        <Input
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            required
+                                            value={formData.confirmPassword}
+                                            onChange={e => updateForm('confirmPassword', e.target.value)}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                        >
+                                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}
-
                         {/* Step 2: Business */}
                         {step === 2 && (
                             <div className="grid gap-4">
@@ -288,7 +317,7 @@ export default function RegisterPage() {
                         )}
 
                     </CardContent>
-                    <CardFooter className="flex justify-between">
+                    <CardFooter className="flex justify-between mt-6">
                         {step > 1 && (
                             <Button type="button" variant="outline" onClick={() => setStep(step - 1)}>
                                 Back
