@@ -63,6 +63,13 @@ export default function RegisterPage() {
                 if (formData.password !== formData.confirmPassword) {
                     throw new Error('Passwords do not match');
                 }
+                const passwordRegex = /^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+$/;
+                if (!passwordRegex.test(formData.password)) {
+                    throw new Error('Password must contain only letters, numbers, and symbols');
+                }
+                if (formData.password.length < 12) {
+                    throw new Error('Password must be at least 12 characters long');
+                }
                 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
                 const res = await fetch(`${apiUrl}/auth/register`, {
                     method: 'POST',
@@ -93,14 +100,18 @@ export default function RegisterPage() {
                 // Save Progress (Upsert Profile)
                 // We validate required fields before creating/updating
                 if (step === 2 && (!formData.businessName || !formData.rcNumber || !formData.businessAddress)) throw new Error("Please fill all business fields");
-                if (step === 3 && (!formData.directorName || !formData.directorPhone || !formData.accountNumber)) throw new Error("Please fill all fields");
+                if (step === 3) {
+                    if (!formData.directorName || !formData.directorPhone || !formData.accountNumber) throw new Error("Please fill all fields");
+                    if (!/^\d{11}$/.test(formData.directorPhone)) throw new Error("Director phone number must be exactly 11 digits");
+                    if (!/^\d{10}$/.test(formData.accountNumber)) throw new Error("Account number must be exactly 10 digits");
+                }
 
                 await saveProfileStep();
             } else if (step === 4) {
                 // Final Submission
                 if (!formData.agreementsSigned) throw new Error("You must agree to the terms.");
                 await saveProfileStep();
-                router.push('/dashboard');
+                router.push('/pending-approval');
                 return;
             }
 
@@ -244,7 +255,7 @@ export default function RegisterPage() {
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>RC / BN Number</Label>
-                                    <Input required value={formData.rcNumber} onChange={e => updateForm('rcNumber', e.target.value)} />
+                                    <Input required value={formData.rcNumber} onChange={e => updateForm('rcNumber', e.target.value)} placeholder="e.g. RC123456 or BN987654" />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Office Address</Label>
