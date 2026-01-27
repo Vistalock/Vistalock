@@ -1,4 +1,4 @@
-import { Controller, Request, Post, UseGuards, Body, Get, UnauthorizedException, Param, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import { Controller, Request, Post, UseGuards, Body, Get, UnauthorizedException, Param, UseInterceptors, UploadedFiles, Delete } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { AuthService } from './auth.service';
@@ -317,6 +317,23 @@ export class AuthController {
 
         const tempPassword = await this.authService.resetPassword(id);
         return { tempPassword };
+    }
+
+    @UseGuards(AuthGuard('jwt'), SudoGuard)
+    @Delete('admin/users/:id')
+    async deleteUser(@Request() req, @Param('id') id: string) {
+        if (req.user.role !== 'SUPER_ADMIN') throw new UnauthorizedException('Access denied');
+
+        await this.auditService.createLog({
+            action: 'DELETE_USER',
+            userId: req.user.userId,
+            entityId: id,
+            entityType: 'USER',
+            ipAddress: req.ip
+        });
+
+        await this.authService.deleteUser(id);
+        return { success: true, message: 'User deleted successfully' };
     }
 
     @UseGuards(AuthGuard('jwt'))

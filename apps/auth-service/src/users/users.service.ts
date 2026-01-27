@@ -32,6 +32,13 @@ export class UsersService implements OnModuleInit {
             console.error('❌ UsersService LOCAL: Database connection failed:', error);
         }
     }
+    async deleteUser(id: string): Promise<void> {
+        // We might need to delete related profiles first if cascading isn't automatic, 
+        // but Prisma schema usually handles it or we do it manually.
+        // For now, simple delete.
+        await this.prisma.user.delete({ where: { id } });
+    }
+
     async findOne(email: string): Promise<User | null> {
         return this.prisma.user.findUnique({
             where: { email },

@@ -47,7 +47,7 @@ export default function UsersPage() {
     // Sudo State
     const [isSudoOpen, setIsSudoOpen] = useState(false);
     const [pendingAction, setPendingAction] = useState<{
-        type: 'SUSPEND' | 'ACTIVATE' | 'RESET_PASSWORD' | 'UPDATE_ROLE';
+        type: 'SUSPEND' | 'ACTIVATE' | 'RESET_PASSWORD' | 'UPDATE_ROLE' | 'DELETE';
         userId: string;
         payload?: any;
     } | null>(null);
@@ -129,6 +129,9 @@ export default function UsersPage() {
             } else if (pendingAction.type === 'UPDATE_ROLE') {
                 // Not implemented in UI yet but ready
                 await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/auth/admin/users/${pendingAction.userId}/role`, { role: pendingAction.payload.role }, { headers });
+            } else if (pendingAction.type === 'DELETE') {
+                await axios.delete(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/auth/admin/users/${pendingAction.userId}`, { headers });
+                alert('User deleted successfully');
             }
 
             fetchUsers();
@@ -254,6 +257,16 @@ export default function UsersPage() {
                                             >
                                                 Reset
                                             </Button>
+                                            <Button
+                                                variant="destructive"
+                                                size="sm"
+                                                onClick={() => triggerSudo({
+                                                    type: 'DELETE',
+                                                    userId: user.id
+                                                })}
+                                            >
+                                                Delete
+                                            </Button>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -268,6 +281,6 @@ export default function UsersPage() {
                 onClose={() => setIsSudoOpen(false)}
                 onSuccess={handleSudoSuccess}
             />
-        </div>
+        </div >
     );
 }

@@ -95,6 +95,10 @@ export class AuthService {
         return this.usersService.getMerchantProfile(userId);
     }
 
+    async deleteUser(id: string) {
+        return this.usersService.deleteUser(id);
+    }
+
     async createAgent(merchantId: string, data: any) {
         let hashedPassword: string | null = null;
         if (data.password) {
