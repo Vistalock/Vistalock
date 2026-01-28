@@ -52,26 +52,26 @@ export default function AdminLoginPage() {
     };
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-slate-950 p-4">
+        <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
             <div className="mb-8 flex flex-col items-center gap-2">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/20">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
                     <Lock className="h-6 w-6" />
                 </div>
-                <span className="text-xl font-bold tracking-tight text-white">Vistalock Internal</span>
+                <span className="text-xl font-bold tracking-tight text-foreground">Vistalock Internal</span>
             </div>
 
-            <Card className="w-full max-w-sm border-slate-800 bg-slate-900/50 text-slate-200">
+            <Card className="w-full max-w-sm border-border bg-card text-card-foreground shadow-sm">
                 <CardHeader className="space-y-1 text-center">
-                    <CardTitle className="text-2xl font-bold text-white">Staff Access</CardTitle>
-                    <CardDescription className="text-slate-400">
+                    <CardTitle className="text-2xl font-bold">Staff Access</CardTitle>
+                    <CardDescription className="text-muted-foreground">
                         Restricted System. All activities are logged.
                     </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleLogin} className="flex flex-col gap-6">
                     <CardContent className="grid gap-4">
-                        {error && <div className="p-3 rounded bg-red-500/10 border border-red-500/20 text-sm text-red-400 text-center">{error}</div>}
+                        {error && <div className="p-3 rounded bg-destructive/10 border border-destructive/20 text-sm text-destructive text-center">{error}</div>}
                         <div className="grid gap-2">
-                            <Label htmlFor="email" className="text-slate-200">Internal Email</Label>
+                            <Label htmlFor="email">Internal Email</Label>
                             <Input
                                 id="email"
                                 type="email"
@@ -79,11 +79,11 @@ export default function AdminLoginPage() {
                                 required
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="bg-slate-950 border-slate-800 focus:ring-emerald-500"
+                                className="bg-background border-input focus:ring-primary"
                             />
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="password" className="text-slate-200">Password</Label>
+                            <Label htmlFor="password">Password</Label>
                             <div className="relative">
                                 <Input
                                     id="password"
@@ -91,12 +91,12 @@ export default function AdminLoginPage() {
                                     required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="bg-slate-950 border-slate-800 focus:ring-emerald-500 pr-10"
+                                    className="bg-background border-input focus:ring-primary pr-10"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                                 >
                                     {showPassword ? (
                                         <EyeOff className="h-4 w-4" />
@@ -108,14 +108,14 @@ export default function AdminLoginPage() {
                         </div>
                     </CardContent>
                     <CardFooter>
-                        <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white" type="submit" disabled={loading}>
+                        <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" type="submit" disabled={loading}>
                             {loading ? 'Authenticating...' : 'Secure Login'}
                         </Button>
                     </CardFooter>
                 </form>
             </Card>
 
-            <div className="mt-8 text-xs text-slate-600 font-mono">
+            <div className="mt-8 text-xs text-muted-foreground font-mono">
                 System ID: VL-INT-PROD-01
             </div>
         </div>
