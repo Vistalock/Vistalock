@@ -26,14 +26,16 @@ async function main() {
     // 1b. Create Legacy Admin (Optional, for backward compat testing)
     const admin = await prisma.user.upsert({
         where: { email: 'admin@vistalock.com' },
-        update: {},
+        update: {
+            password: adminHash, // Force update password on seed run
+        },
         create: {
             email: 'admin@vistalock.com',
             password: adminHash,
             role: Role.ADMIN,
         },
     });
-    console.log(`Created Legacy Admin: ${admin.email}`);
+    console.log(`Created/Updated Legacy Admin: ${admin.email}`);
 
     // 2. Create Merchant
     const merchant = await prisma.user.upsert({
