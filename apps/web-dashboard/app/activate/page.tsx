@@ -10,6 +10,7 @@ function ActivateAgentForm() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const token = searchParams.get('token');
+    const type = searchParams.get('type') || 'agent'; // 'agent' or 'merchant'
 
     const [loading, setLoading] = useState(true);
     const [verifying, setVerifying] = useState(true);
@@ -29,8 +30,14 @@ function ActivateAgentForm() {
             return;
         }
 
-        verifyToken(token);
-    }, [token]);
+        // For merchant activation, skip token verification (will be done on activation)
+        if (type === 'merchant') {
+            setVerifying(false);
+            setLoading(false);
+        } else {
+            verifyToken(token);
+        }
+    }, [token, type]);
 
     const verifyToken = async (token: string) => {
         try {
@@ -64,11 +71,19 @@ function ActivateAgentForm() {
         setLoading(true);
 
         try {
-            // No deviceId needed - will be bound on first mobile login
-            await api.post('/agents/activate', {
-                token,
-                password
-            });
+            if (type === 'merchant') {
+                // Merchant activation
+                await api.post('/auth/merchant/activate', {
+                    token,
+                    password
+                });
+            } else {
+                // Agent activation (no deviceId needed - will be bound on first mobile login)
+                await api.post('/agents/activate', {
+                    token,
+                    password
+                });
+            }
 
             setIsActivated(true);
         } catch (err: any) {
@@ -107,6 +122,28 @@ function ActivateAgentForm() {
     }
 
     if (isActivated) {
+        if (type === 'merchant') {
+            // Merchant success - redirect to login
+            setTimeout(() => router.push('/login'), 2000);
+            return (
+                <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+                    <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center">
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 mb-6">
+                            <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-2">Account Activated!</h2>
+                        <p className="text-gray-600 mb-6">
+                            Your merchant account has been successfully activated.
+                        </p>
+                        <p className="text-sm text-gray-500">Redirecting to login page...</p>
+                    </div>
+                </div>
+            );
+        }
+
+        // Agent success
         return (
             <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
                 <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center">

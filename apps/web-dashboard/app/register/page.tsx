@@ -58,8 +58,8 @@ export default function RegisterPage() {
         setError('');
 
         try {
+            // Validate current step
             if (step === 1) {
-                // Register User
                 if (formData.password !== formData.confirmPassword) {
                     throw new Error('Passwords do not match');
                 }
@@ -70,48 +70,82 @@ export default function RegisterPage() {
                 if (formData.password.length < 12) {
                     throw new Error('Password must be at least 12 characters long');
                 }
+            } else if (step === 2) {
+                if (!formData.businessName || !formData.rcNumber || !formData.businessAddress) {
+                    throw new Error("Please fill all business fields");
+                }
+            } else if (step === 3) {
+                if (!formData.directorName || !formData.directorPhone || !formData.accountNumber) {
+                    throw new Error("Please fill all fields");
+                }
+                if (!/^\d{11}$/.test(formData.directorPhone)) {
+                    throw new Error("Director phone number must be exactly 11 digits");
+                }
+                if (!/^\d{10}$/.test(formData.accountNumber)) {
+                    throw new Error("Account number must be exactly 10 digits");
+                }
+            } else if (step === 4) {
+                // Final Submission - Submit Merchant Application
+                if (!formData.agreementsSigned) {
+                    throw new Error("You must agree to the terms.");
+                }
+
                 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-                const res = await fetch(`${apiUrl}/auth/register`, {
+                const applicationData = {
+                    // Contact & Email
+                    email: formData.email,
+                    contactName: formData.directorName,
+                    phone: formData.directorPhone,
+
+                    // Business Info
+                    businessName: formData.businessName,
+                    tradingName: formData.businessName, // Same as business name
+                    businessType: formData.businessType,
+                    cacNumber: formData.rcNumber,
+                    natureOfBusiness: 'Device Financing', // Default
+                    businessAddress: formData.businessAddress,
+                    operatingAddress: formData.businessAddress,
+
+                    // Bank Details (as JSON)
+                    bankDetails: {
+                        bankName: formData.bankName,
+                        accountNumber: formData.accountNumber,
+                        accountName: formData.accountName || formData.businessName
+                    },
+
+                    // Directors (as array)
+                    directors: [{
+                        name: formData.directorName,
+                        phone: formData.directorPhone,
+                        nin: formData.directorNin
+                    }],
+
+                    // Compliance
+                    compliance: {
+                        agreementsSigned: formData.agreementsSigned,
+                        submittedAt: new Date().toISOString()
+                    },
+
+                    // Empty required fields
+                    signatories: [],
+                    operations: {},
+                    deviceDetails: {},
+                    agentDetails: {},
+                    documents: {}
+                };
+
+                const res = await fetch(`${apiUrl}/auth/merchant/apply`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: formData.email, password: formData.password, role: 'MERCHANT' }),
+                    body: JSON.stringify(applicationData),
                 });
 
                 if (!res.ok) {
                     const data = await res.json();
-                    throw new Error(data.message || 'Registration failed');
+                    throw new Error(data.message || 'Application submission failed');
                 }
 
-                // Auto Login to get Token
-                const loginRes = await fetch(`${apiUrl}/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: formData.email, password: formData.password }),
-                });
-
-                if (loginRes.ok) {
-                    const data = await loginRes.json();
-                    setToken(data.access_token);
-                    localStorage.setItem('token', data.access_token);
-                } else {
-                    throw new Error('Login failed after registration');
-                }
-            } else if (step === 2 || step === 3) {
-                // Save Progress (Upsert Profile)
-                // We validate required fields before creating/updating
-                if (step === 2 && (!formData.businessName || !formData.rcNumber || !formData.businessAddress)) throw new Error("Please fill all business fields");
-                if (step === 3) {
-                    if (!formData.directorName || !formData.directorPhone || !formData.accountNumber) throw new Error("Please fill all fields");
-                    if (!/^\d{11}$/.test(formData.directorPhone)) throw new Error("Director phone number must be exactly 11 digits");
-                    if (!/^\d{10}$/.test(formData.accountNumber)) throw new Error("Account number must be exactly 10 digits");
-                }
-
-                await saveProfileStep();
-            } else if (step === 4) {
-                // Final Submission
-                if (!formData.agreementsSigned) throw new Error("You must agree to the terms.");
-                await saveProfileStep();
-                router.push('/pending-approval');
+                router.push('/application-submitted');
                 return;
             }
 
@@ -120,42 +154,6 @@ export default function RegisterPage() {
             setError(err.message || 'An error occurred');
         } finally {
             setLoading(false);
-        }
-    };
-
-    const saveProfileStep = async () => {
-        // Prepare payload, filtering only relevant fields could be better but sending all is fine for now
-        // Upsert handles partial updates in backend logic if structured so, but here we send what we have.
-        // Backend DTO validation might catch missing fields if we send partials.
-        // For simplicity, we send the fields collected SO FAR + expected ones.
-
-        const payload = {
-            businessName: formData.businessName,
-            businessType: formData.businessType,
-            rcNumber: formData.rcNumber,
-            businessAddress: formData.businessAddress,
-            directorName: formData.directorName,
-            directorPhone: formData.directorPhone,
-            directorNin: formData.directorNin,
-            bankName: formData.bankName,
-            accountNumber: formData.accountNumber,
-            accountName: formData.accountName,
-            agreementsSigned: formData.agreementsSigned
-        };
-
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-        const res = await fetch(`${apiUrl}/auth/merchant-profile`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) {
-            const data = await res.json();
-            throw new Error(data.message || 'Failed to save profile');
         }
     };
 

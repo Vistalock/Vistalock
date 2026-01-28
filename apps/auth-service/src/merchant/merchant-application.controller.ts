@@ -1,5 +1,5 @@
 
-import { Controller, Post, Get, Body, Param, UseGuards, Request, UnauthorizedException, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, UseGuards, Request, UnauthorizedException, UsePipes, ValidationPipe, Delete } from '@nestjs/common';
 import { MerchantApplicationService } from './merchant-application.service';
 import { AuthGuard } from '@nestjs/passport';
 import { CreateMerchantApplicationDto } from './dto/create-merchant-application.dto';
@@ -13,6 +13,15 @@ export class MerchantApplicationController {
     @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
     async submitApplication(@Body() body: CreateMerchantApplicationDto) {
         return this.appService.submitApplication(body);
+    }
+
+    // PUBLIC: Activate Merchant Account
+    @Post('auth/merchant/activate')
+    async activateMerchant(@Body() body: { token: string; password: string }) {
+        if (!body.token || !body.password) {
+            throw new UnauthorizedException('Token and password are required');
+        }
+        return this.appService.activateMerchant(body.token, body.password);
     }
 
     // PROTECTED: List Applications (Admin Only)
@@ -55,5 +64,15 @@ export class MerchantApplicationController {
             throw new UnauthorizedException('Access denied');
         }
         return this.appService.rejectApplication(id, req.user.userId, body.reason);
+    }
+
+    // ADMIN: Delete Application
+    @UseGuards(AuthGuard('jwt'))
+    @Delete('admin/merchant-applications/:id')
+    async deleteApplication(@Request() req, @Param('id') id: string) {
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'OPS_ADMIN') {
+            throw new UnauthorizedException('Access denied');
+        }
+        return this.appService.deleteApplication(id);
     }
 }
