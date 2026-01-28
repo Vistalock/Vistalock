@@ -7,7 +7,7 @@ export class EmailService {
 
     constructor() {
         // Zoho Mail SMTP Configuration
-        this.transporter = nodemailer.createTransporter({
+        this.transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST || 'smtp.zoho.com',
             port: parseInt(process.env.SMTP_PORT || '465'),
             secure: true, // true for 465, false for other ports
