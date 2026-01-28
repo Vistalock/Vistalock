@@ -1,21 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
+import Mailgun from 'mailgun.js';
+import FormData from 'form-data';
 
 @Injectable()
 export class EmailService {
-    private transporter: nodemailer.Transporter;
+    private mg: any;
+    private domain: string;
 
     constructor() {
-        // Zoho Mail SMTP Configuration
-        this.transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'smtp.zoho.com',
-            port: parseInt(process.env.SMTP_PORT || '465'),
-            secure: true, // true for 465, false for other ports
-            auth: {
-                user: process.env.SMTP_USER, // Your Zoho email
-                pass: process.env.SMTP_PASS, // Your Zoho password or app-specific password
-            },
+        // Mailgun Configuration
+        const mailgun = new Mailgun(FormData);
+        this.mg = mailgun.client({
+            username: 'api',
+            key: process.env.MAILGUN_API_KEY || '',
         });
+        this.domain = process.env.MAILGUN_DOMAIN || '';
     }
 
     async sendApplicationConfirmation(email: string, businessName: string) {
@@ -29,7 +28,6 @@ export class EmailService {
                     .container { max-width: 600px; margin: 0 auto; padding: 20px; }
                     .header { background: #10b981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
                     .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
-                    .button { display: inline-block; padding: 12px 24px; background: #10b981; color: white; text-decoration: none; border-radius: 6px; margin: 20px 0; }
                     .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 14px; }
                 </style>
             </head>
@@ -58,12 +56,17 @@ export class EmailService {
             </html>
         `;
 
-        await this.transporter.sendMail({
-            from: `"VistaLock" <${process.env.SMTP_USER}>`,
-            to: email,
-            subject,
-            html,
-        });
+        try {
+            await this.mg.messages.create(this.domain, {
+                from: `VistaLock <noreply@${this.domain}>`,
+                to: [email],
+                subject,
+                html,
+            });
+        } catch (error) {
+            console.error('Mailgun send error:', error);
+            throw error;
+        }
     }
 
     async sendApprovalEmail(email: string, businessName: string, activationToken: string) {
@@ -115,12 +118,17 @@ export class EmailService {
             </html>
         `;
 
-        await this.transporter.sendMail({
-            from: `"VistaLock" <${process.env.SMTP_USER}>`,
-            to: email,
-            subject,
-            html,
-        });
+        try {
+            await this.mg.messages.create(this.domain, {
+                from: `VistaLock <noreply@${this.domain}>`,
+                to: [email],
+                subject,
+                html,
+            });
+        } catch (error) {
+            console.error('Mailgun send error:', error);
+            throw error;
+        }
     }
 
     async sendRejectionEmail(email: string, businessName: string, reason: string) {
@@ -162,11 +170,16 @@ export class EmailService {
             </html>
         `;
 
-        await this.transporter.sendMail({
-            from: `"VistaLock" <${process.env.SMTP_USER}>`,
-            to: email,
-            subject,
-            html,
-        });
+        try {
+            await this.mg.messages.create(this.domain, {
+                from: `VistaLock <noreply@${this.domain}>`,
+                to: [email],
+                subject,
+                html,
+            });
+        } catch (error) {
+            console.error('Mailgun send error:', error);
+            throw error;
+        }
     }
 }
