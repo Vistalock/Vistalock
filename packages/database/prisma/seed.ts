@@ -39,47 +39,66 @@ async function main() {
     });
     console.log(`Created/Updated Legacy Admin: ${admin.email}`);
 
-    // 2. Create Merchant
-    const merchant = await prisma.user.upsert({
-        where: { email: 'merchant@test.com' },
-        update: {},
-        create: {
-            email: 'merchant@test.com',
-            password: passwordHash,
-            role: Role.MERCHANT,
-            merchantProfile: {
-                create: {
-                    businessName: "Test Merchant Ltd",
-                    businessType: BusinessType.LIMITED_LIABILITY,
-                    rcNumber: "RC123456",
-                    businessAddress: "123 Market St",
-                    directorName: "John Doe",
-                    directorPhone: "08012345678",
+    // 2. Create Merchant (skip if exists)
+    let merchant;
+    try {
+        merchant = await prisma.user.upsert({
+            where: { email: 'merchant@test.com' },
+            update: {},
+            create: {
+                email: 'merchant@test.com',
+                password: passwordHash,
+                role: Role.MERCHANT,
+                merchantProfile: {
+                    create: {
+                        businessName: "Test Merchant Ltd",
+                        businessType: BusinessType.LIMITED_LIABILITY,
+                        rcNumber: "RC123456",
+                        businessAddress: "123 Market St",
+                        directorName: "John Doe",
+                        directorPhone: "08012345678",
+                    }
                 }
-            }
-        },
-    });
-    console.log(`Created Merchant: ${merchant.email}`);
+            },
+        });
+        console.log(`Created Merchant: ${merchant.email}`);
+    } catch (e) {
+        console.log('Merchant already exists, fetching...');
+        merchant = await prisma.user.findUnique({ where: { email: 'merchant@test.com' } });
+    }
 
-    // 3. Create Customer
-    const customer = await prisma.user.upsert({
-        where: { email: 'customer@test.com' },
-        update: {},
-        create: {
-            email: 'customer@test.com',
-            password: passwordHash,
-            role: Role.CUSTOMER,
-            customerProfile: {
-                create: {
-                    phoneNumber: "08099998888",
-                    nin: "12345678901",
-                    firstName: "Customer",
-                    lastName: "One"
+    // 3. Create Customer (skip if exists)
+    let customer;
+    try {
+        customer = await prisma.user.upsert({
+            where: { email: 'customer@test.com' },
+            update: {},
+            create: {
+                email: 'customer@test.com',
+                password: passwordHash,
+                role: Role.CUSTOMER,
+                customerProfile: {
+                    create: {
+                        phoneNumber: "08099998888",
+                        nin: "12345678901",
+                        firstName: "Customer",
+                        lastName: "One"
+                    }
                 }
-            }
-        },
-    });
-    console.log(`Created Customer: ${customer.email}`);
+            },
+        });
+        console.log(`Created Customer: ${customer.email}`);
+    } catch (e) {
+        console.log('Customer already exists, fetching...');
+        customer = await prisma.user.findUnique({ where: { email: 'customer@test.com' } });
+    }
+
+    // Skip product/device/loan seeding if merchant or customer don't exist
+    if (!merchant || !customer) {
+        console.log('Skipping product/device/loan seeding due to missing merchant or customer');
+        console.log('✅ Seeding complete (admin accounts updated).');
+        return;
+    }
 
     // 3b. Create Product (Required for Loans)
     const product = await prisma.product.create({
