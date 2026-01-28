@@ -1,4 +1,4 @@
-import { PrismaClient, Role, DeviceStatus, LoanStatus, InstallmentStatus } from '@prisma/client';
+import { PrismaClient, Role, DeviceStatus, LoanStatus, PaymentStatus, BusinessType, SubscriptionPlan } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -14,7 +14,9 @@ async function main() {
     // 1. Create Super Admin (Root)
     const superAdmin = await prisma.user.upsert({
         where: { email: 'superadmin@vistalock.com' },
-        update: {},
+        update: {
+            password: adminHash,
+        },
         create: {
             email: 'superadmin@vistalock.com',
             password: adminHash,
@@ -45,6 +47,16 @@ async function main() {
             email: 'merchant@test.com',
             password: passwordHash,
             role: Role.MERCHANT,
+            merchantProfile: {
+                create: {
+                    businessName: "Test Merchant Ltd",
+                    businessType: BusinessType.LIMITED_LIABILITY,
+                    rcNumber: "RC123456",
+                    businessAddress: "123 Market St",
+                    directorName: "John Doe",
+                    directorPhone: "08012345678",
+                }
+            }
         },
     });
     console.log(`Created Merchant: ${merchant.email}`);
@@ -57,9 +69,28 @@ async function main() {
             email: 'customer@test.com',
             password: passwordHash,
             role: Role.CUSTOMER,
+            customerProfile: {
+                create: {
+                    phoneNumber: "08099998888",
+                    nin: "12345678901",
+                    firstName: "Customer",
+                    lastName: "One"
+                }
+            }
         },
     });
     console.log(`Created Customer: ${customer.email}`);
+
+    // 3b. Create Product (Required for Loans)
+    const product = await prisma.product.create({
+        data: {
+            name: "Samsung Galaxy A14",
+            price: 150000,
+            merchantId: merchant.id,
+            stockQuantity: 100,
+            minDownPayment: 20000,
+        }
+    });
 
     // 4. Create Devices (50 units)
     console.log('Creating 50 Devices...');
@@ -92,17 +123,25 @@ async function main() {
         loanPromises.push(
             prisma.loan.create({
                 data: {
-                    amount: 150000,
+                    loanAmount: 150000,
+                    downPayment: 0,
+                    monthlyRepayment: 26250,
                     interestRate: 5,
-                    durationMonths: 6,
+                    tenure: 6,
+                    totalRepayment: 157500,
+                    outstandingAmount: 157500,
                     userId: customer.id,
-                    deviceId: device.id,
+                    merchantId: merchant.id,
+                    deviceIMEI: device.imei,
+                    productId: product.id,
+                    customerNIN: "12345678901",
+                    customerPhone: "08099998888",
                     status: LoanStatus.ACTIVE,
-                    installments: {
+                    payments: {
                         create: Array.from({ length: 6 }).map((_, idx) => ({
                             dueDate: new Date(new Date().setMonth(new Date().getMonth() + idx + 1)),
-                            amountDue: 26250, // (150000 + 5%) / 6 approx
-                            status: idx === 0 ? InstallmentStatus.PAID : InstallmentStatus.PENDING,
+                            amount: 26250,
+                            status: idx === 0 ? PaymentStatus.PAID : PaymentStatus.PENDING,
                         })),
                     },
                 },
@@ -114,7 +153,7 @@ async function main() {
         await Promise.all(loanPromises);
         console.log('Seeded 20 active loans.');
     } catch (e) {
-        console.log('Loans might already exist, skipping...');
+        console.log('Loans might already exist or error:', e);
     }
 
     // 6. Create Merchant Applications (for testing approval flow)
