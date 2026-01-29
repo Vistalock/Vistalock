@@ -60,6 +60,7 @@ export class MerchantApplicationService {
 
     async getApplications() {
         return this.prisma.merchantApplication.findMany({
+            where: { deletedAt: null }, // Exclude soft-deleted applications
             orderBy: { createdAt: 'desc' }
         });
     }
@@ -236,7 +237,16 @@ export class MerchantApplicationService {
         return updatedApplication;
     }
 
+    async softDeleteApplication(id: string) {
+        // Soft delete - mark as deleted but keep data
+        return this.prisma.merchantApplication.update({
+            where: { id },
+            data: { deletedAt: new Date() }
+        });
+    }
+
     async deleteApplication(id: string) {
+        // Hard delete - permanently remove from database
         return this.prisma.merchantApplication.delete({
             where: { id }
         });

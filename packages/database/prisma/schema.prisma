@@ -192,8 +192,9 @@ model MerchantApplication {
   processedBy     String? // Last Admin ID who touched this
   rejectionReason String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft delete timestamp
 }
 
 model CustomerProfile {

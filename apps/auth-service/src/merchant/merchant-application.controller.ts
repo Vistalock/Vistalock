@@ -1,5 +1,5 @@
 
-import { Controller, Post, Get, Body, Param, UseGuards, Request, UnauthorizedException, UsePipes, ValidationPipe, Delete } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, UseGuards, Request, UnauthorizedException, UsePipes, ValidationPipe, Delete, Patch } from '@nestjs/common';
 import { MerchantApplicationService } from './merchant-application.service';
 import { AuthGuard } from '@nestjs/passport';
 import { CreateMerchantApplicationDto } from './dto/create-merchant-application.dto';
@@ -74,5 +74,15 @@ export class MerchantApplicationController {
             throw new UnauthorizedException('Access denied');
         }
         return this.appService.deleteApplication(id);
+    }
+
+    // ADMIN: Archive Application (Soft Delete)
+    @UseGuards(AuthGuard('jwt'))
+    @Patch('admin/merchant-applications/:id/archive')
+    async archiveApplication(@Request() req, @Param('id') id: string) {
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'OPS_ADMIN') {
+            throw new UnauthorizedException('Access denied');
+        }
+        return this.appService.softDeleteApplication(id);
     }
 }
