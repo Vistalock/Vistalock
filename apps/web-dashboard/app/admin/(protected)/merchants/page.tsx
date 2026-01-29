@@ -107,9 +107,16 @@ export default function MerchantsPage() {
 
             const method = deleteDialog.type === 'soft' ? 'patch' : 'delete';
 
-            await axios[method](url, {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+
+            if (deleteDialog.type === 'soft') {
+                await axios.patch(url, {}, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+            } else {
+                await axios.delete(url, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+            }
 
             toast({
                 title: "Success",
