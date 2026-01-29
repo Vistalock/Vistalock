@@ -38,6 +38,11 @@ class DirectorDto {
 
     @IsString()
     @IsOptional()
+    @Matches(/^[0-9]{11}$/, { message: 'NIN must be exactly 11 digits' })
+    nin?: string;
+
+    @IsString()
+    @IsOptional()
     idNumber?: string;
 
     @IsOptional()

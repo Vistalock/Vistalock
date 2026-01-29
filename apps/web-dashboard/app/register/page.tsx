@@ -48,6 +48,38 @@ export default function RegisterPage() {
         agreementsSigned: false,
     });
 
+    // File State
+    const [directorFile, setDirectorFile] = useState<File | null>(null);
+    const [fileError, setFileError] = useState('');
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        setFileError('');
+
+        if (!file) {
+            setDirectorFile(null);
+            return;
+        }
+
+        // Security Check: File Type
+        const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+        if (!allowedTypes.includes(file.type)) {
+            setFileError('Invalid file type. Only JPG, PNG, and PDF are allowed.');
+            e.target.value = ''; // Reset input
+            return;
+        }
+
+        // Security Check: File Size (5MB)
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (file.size > maxSize) {
+            setFileError('File size too large. Maximum size is 5MB.');
+            e.target.value = ''; // Reset input
+            return;
+        }
+
+        setDirectorFile(file);
+    };
+
     const updateForm = (key: string, value: any) => {
         setFormData(prev => ({ ...prev, [key]: value }));
     };
@@ -81,6 +113,12 @@ export default function RegisterPage() {
                 if (!/^\d{11}$/.test(formData.directorPhone)) {
                     throw new Error("Director phone number must be exactly 11 digits");
                 }
+                if (!directorFile) {
+                    throw new Error("Please upload a valid Director ID document");
+                }
+                if (!/^\d{11}$/.test(formData.directorNin)) {
+                    throw new Error("NIN must be exactly 11 numeric digits");
+                }
                 if (!/^\d{10}$/.test(formData.accountNumber)) {
                     throw new Error("Account number must be exactly 10 digits");
                 }
@@ -91,6 +129,27 @@ export default function RegisterPage() {
                 }
 
                 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+                // Convert file to Base64 securely
+                let documentsData = {};
+                if (directorFile) {
+                    const base64 = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(directorFile);
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = error => reject(error);
+                    });
+
+                    documentsData = {
+                        directorId: {
+                            name: directorFile.name,
+                            type: directorFile.type,
+                            size: directorFile.size,
+                            content: base64 // Secure Data URL
+                        }
+                    };
+                }
+
                 const applicationData = {
                     // Contact & Email
                     email: formData.email,
@@ -131,7 +190,7 @@ export default function RegisterPage() {
                     operations: {},
                     deviceDetails: {},
                     agentDetails: {},
-                    documents: {}
+                    documents: documentsData
                 };
 
                 const res = await fetch(`${apiUrl}/auth/merchant/apply`, {
@@ -279,8 +338,14 @@ export default function RegisterPage() {
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Director ID (Passport/NIN/DL)</Label>
-                                    <Input type="file" accept="image/*,.pdf" className="cursor-pointer text-muted-foreground file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90" />
-                                    <p className="text-[0.8rem] text-muted-foreground">Upload a clear image or PDF of your identification document.</p>
+                                    <Input
+                                        type="file"
+                                        accept=".jpg,.jpeg,.png,.pdf"
+                                        onChange={handleFileChange}
+                                        className="cursor-pointer text-muted-foreground file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                                    />
+                                    {fileError && <p className="text-sm text-red-500">{fileError}</p>}
+                                    <p className="text-[0.8rem] text-muted-foreground">Upload a clear image or PDF of your identification document (Max 5MB).</p>
                                 </div>
                                 <div className="border-t pt-4 mt-2">
                                     <h4 className="font-semibold mb-2">Settlement Account</h4>
