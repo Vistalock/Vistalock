@@ -152,11 +152,13 @@ export class AdminMerchantService {
 
         if (!user || !user.merchantProfile) throw new NotFoundException('Merchant not found');
 
+        const merchantProfileId = user.merchantProfile.id; // Store ID before transaction
+
         // Hard delete - remove merchant profile and user
         return this.prisma.$transaction(async (tx) => {
             // Delete merchant profile first
             await tx.merchantProfile.delete({
-                where: { id: user.merchantProfile.id }
+                where: { id: merchantProfileId }
             });
 
             // Delete user
