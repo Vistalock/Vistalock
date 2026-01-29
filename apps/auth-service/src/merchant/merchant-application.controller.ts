@@ -28,7 +28,7 @@ export class MerchantApplicationController {
     @UseGuards(AuthGuard('jwt'))
     @Get('admin/merchant-applications')
     async getApplications(@Request() req) {
-        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'OPS_ADMIN') {
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'OPS_ADMIN' && req.user.role !== 'ADMIN') {
             throw new UnauthorizedException('Access denied');
         }
         return this.appService.getApplications();
@@ -38,6 +38,9 @@ export class MerchantApplicationController {
     @UseGuards(AuthGuard('jwt'))
     @Post('admin/merchant-applications/:id/review-ops')
     async reviewByOps(@Request() req, @Param('id') id: string) {
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'OPS_ADMIN' && req.user.role !== 'ADMIN') {
+            throw new UnauthorizedException('Access denied');
+        }
         return this.appService.reviewByOps(id, req.user.userId);
     }
 
@@ -45,6 +48,9 @@ export class MerchantApplicationController {
     @UseGuards(AuthGuard('jwt'))
     @Post('admin/merchant-applications/:id/review-risk')
     async reviewByRisk(@Request() req, @Param('id') id: string) {
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'OPS_ADMIN' && req.user.role !== 'ADMIN') {
+            throw new UnauthorizedException('Access denied');
+        }
         return this.appService.reviewByRisk(id, req.user.userId);
     }
 
@@ -52,7 +58,9 @@ export class MerchantApplicationController {
     @UseGuards(AuthGuard('jwt'))
     @Post('admin/merchant-applications/:id/approve')
     async approveApplication(@Request() req, @Param('id') id: string) {
-        // In real system, check for SUPER_ADMIN role here
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'OPS_ADMIN' && req.user.role !== 'ADMIN') {
+            throw new UnauthorizedException('Access denied');
+        }
         return this.appService.approveApplication(id, req.user.userId);
     }
 
@@ -60,7 +68,7 @@ export class MerchantApplicationController {
     @UseGuards(AuthGuard('jwt'))
     @Post('admin/merchant-applications/:id/reject')
     async rejectApplication(@Request() req, @Param('id') id: string, @Body() body: { reason: string }) {
-        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'OPS_ADMIN') {
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'OPS_ADMIN' && req.user.role !== 'ADMIN') {
             throw new UnauthorizedException('Access denied');
         }
         return this.appService.rejectApplication(id, req.user.userId, body.reason);
@@ -70,7 +78,7 @@ export class MerchantApplicationController {
     @UseGuards(AuthGuard('jwt'))
     @Delete('admin/merchant-applications/:id')
     async deleteApplication(@Request() req, @Param('id') id: string) {
-        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'OPS_ADMIN') {
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'OPS_ADMIN' && req.user.role !== 'ADMIN') {
             throw new UnauthorizedException('Access denied');
         }
         return this.appService.deleteApplication(id);
@@ -80,7 +88,7 @@ export class MerchantApplicationController {
     @UseGuards(AuthGuard('jwt'))
     @Patch('admin/merchant-applications/:id/archive')
     async archiveApplication(@Request() req, @Param('id') id: string) {
-        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'OPS_ADMIN') {
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'OPS_ADMIN' && req.user.role !== 'ADMIN') {
             throw new UnauthorizedException('Access denied');
         }
         return this.appService.softDeleteApplication(id);
