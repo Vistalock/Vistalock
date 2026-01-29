@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Post, Body, Param, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Delete, Body, Param, UseGuards, Query } from '@nestjs/common';
 import { AdminMerchantService } from './admin-merchant.service';
 import { AuthGuard } from '@nestjs/passport';
 import * as bcrypt from 'bcryptjs';
@@ -45,5 +45,19 @@ export class AdminMerchantController {
             maxDevices: body.maxDevices || 10,
             maxAgents: body.maxAgents || 5
         });
+    }
+
+    // Archive merchant (soft delete)
+    @UseGuards(AuthGuard('jwt'))
+    @Patch(':id/archive')
+    async archiveMerchant(@Param('id') id: string) {
+        return this.merchantService.archiveMerchant(id);
+    }
+
+    // Delete merchant permanently (hard delete)
+    @UseGuards(AuthGuard('jwt'))
+    @Delete(':id')
+    async deleteMerchant(@Param('id') id: string) {
+        return this.merchantService.deleteMerchant(id);
     }
 }

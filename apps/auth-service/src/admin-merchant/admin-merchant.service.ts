@@ -7,7 +7,10 @@ export class AdminMerchantService {
 
     async findAll(status?: string, search?: string) {
         const where: any = {
-            role: 'MERCHANT'
+            role: 'MERCHANT',
+            merchantProfile: {
+                deletedAt: null // Exclude soft-deleted merchants
+            }
         };
 
         if (status) {
@@ -121,6 +124,47 @@ export class AdminMerchantService {
             // For now, checks existingUser prevents double creation.
 
             return user;
+        });
+    }
+
+    // Archive merchant (soft delete) - set deletedAt timestamp
+    async archiveMerchant(id: string) {
+        const user = await this.prisma.user.findUnique({
+            where: { id },
+            include: { merchantProfile: true }
+        });
+
+        if (!user || !user.merchantProfile) throw new NotFoundException('Merchant not found');
+
+        // Soft delete the merchant profile
+        return this.prisma.merchantProfile.update({
+            where: { id: user.merchantProfile.id },
+            data: { deletedAt: new Date() }
+        });
+    }
+
+    // Delete merchant permanently (hard delete)
+    async deleteMerchant(id: string) {
+        const user = await this.prisma.user.findUnique({
+            where: { id },
+            include: { merchantProfile: true }
+        });
+
+        if (!user || !user.merchantProfile) throw new NotFoundException('Merchant not found');
+
+        // Hard delete - remove merchant profile and user
+        return this.prisma.$transaction(async (tx) => {
+            // Delete merchant profile first
+            await tx.merchantProfile.delete({
+                where: { id: user.merchantProfile.id }
+            });
+
+            // Delete user
+            await tx.user.delete({
+                where: { id }
+            });
+
+            return { message: 'Merchant deleted successfully' };
         });
     }
 }

@@ -20,7 +20,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MoreVertical, Archive, Trash2 } from 'lucide-react';
+import { MoreVertical, Archive, Trash2, Building2, Mail, Calendar, Package } from 'lucide-react';
 import axios from 'axios';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
@@ -28,11 +28,11 @@ import { useToast } from "@/hooks/use-toast";
 // Simple status color mapper
 const getStatusVariant = (status: string) => {
     switch (status) {
-        case 'APPROVED': return 'default'; // primary/green usually
-        case 'PENDING': return 'secondary'; // yellow-ish usually
-        case 'REJECTED':
-        case 'SUSPENDED': return 'destructive';
-        default: return 'outline';
+        case 'APPROVED': return 'default';
+        case 'PENDING': return 'secondary';
+        case 'REJECTED': return 'destructive';
+        case 'SUSPENDED': return 'outline';
+        default: return 'secondary';
     }
 };
 
@@ -45,47 +45,48 @@ export default function MerchantsPage() {
     const fetchMerchants = async () => {
         try {
             const token = localStorage.getItem('token');
-            // Using port 3005 (Gateway)
-            const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/admin/merchants`, {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const response = await axios.get(`${apiUrl}/admin/merchants`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setMerchants(res.data);
+            setMerchants(response.data);
         } catch (error) {
-            console.error("Failed to fetch merchants", error);
+            console.error('Error fetching merchants:', error);
         } finally {
             setLoading(false);
         }
-    };
+    }
 
     useEffect(() => {
         fetchMerchants();
     }, []);
 
-    const handleStatusUpdate = async (id: string, newStatus: string) => {
-        if (!confirm(`Are you sure you want to change status to ${newStatus}?`)) return;
+    const handleStatusUpdate = async (id: string, status: string) => {
         try {
             const token = localStorage.getItem('token');
-            await axios.patch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/admin/merchants/${id}/status`, { status: newStatus }, {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            await axios.patch(`${apiUrl}/admin/merchants/${id}/status`, { status }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            fetchMerchants(); // Refresh
-        } catch (e) {
-            alert('Failed to update status');
+            fetchMerchants();
+        } catch (error) {
+            console.error('Error updating status:', error);
         }
-    };
+    }
 
     const handleLimitUpdate = async (id: string, currentLimit: number) => {
-        const newLimit = prompt("Enter new Max Device Limit:", currentLimit.toString());
+        const newLimit = prompt(`Enter new device limit (current: ${currentLimit}):`, String(currentLimit));
         if (!newLimit) return;
 
         try {
             const token = localStorage.getItem('token');
-            await axios.patch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/admin/merchants/${id}/limits`, { maxDevices: parseInt(newLimit) }, {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            await axios.patch(`${apiUrl}/admin/merchants/${id}/limits`, { maxDevices: Number(newLimit) }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            fetchMerchants(); // Refresh
-        } catch (e) {
-            alert('Failed to update limit');
+            fetchMerchants();
+        } catch (error) {
+            console.error('Error updating limits:', error);
         }
     }
 
@@ -100,7 +101,6 @@ export default function MerchantsPage() {
             const token = localStorage.getItem('token');
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-            // For merchants (MerchantProfile), we need different endpoints
             const url = deleteDialog.type === 'soft'
                 ? `${apiUrl}/admin/merchants/${deleteDialog.merchant.id}/archive`
                 : `${apiUrl}/admin/merchants/${deleteDialog.merchant.id}`;
@@ -129,103 +129,120 @@ export default function MerchantsPage() {
         }
     };
 
-    if (loading) return <div>Loading merchants...</div>;
+    if (loading) return <div className="p-4">Loading merchants...</div>;
 
     return (
         <>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Merchant Management</CardTitle>
-                    <CardDescription>View, approve, and manage merchant accounts.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="rounded-md border">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-muted/50 text-muted-foreground">
-                                <tr>
-                                    <th className="px-4 py-3 font-medium">Business Name</th>
-                                    <th className="px-4 py-3 font-medium">Email</th>
-                                    <th className="px-4 py-3 font-medium">Join Date</th>
-                                    <th className="px-4 py-3 font-medium">Status</th>
-                                    <th className="px-4 py-3 font-medium">Usage</th>
-                                    <th className="px-4 py-3 font-medium text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {merchants.length === 0 && (
-                                    <tr>
-                                        <td colSpan={6} className="text-center py-8 text-muted-foreground">No merchants found.</td>
-                                    </tr>
-                                )}
-                                {Array.isArray(merchants) && merchants.map((merchant) => (
-                                    <tr key={merchant.id} className="border-t hover:bg-muted/50">
-                                        <td className="px-4 py-3 font-medium">{merchant.businessName}</td>
-                                        <td className="px-4 py-3">{merchant.email}</td>
-                                        <td className="px-4 py-3">{new Date(merchant.joinedAt).toLocaleDateString()}</td>
-                                        <td className="px-4 py-3">
-                                            <Badge variant={getStatusVariant(merchant.status)}>
-                                                {merchant.status}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {merchant.usedDevices} / {merchant.maxDevices} Devices
-                                        </td>
-                                        <td className="px-4 py-3 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                {merchant.status === 'PENDING' && (
-                                                    <>
-                                                        <button
-                                                            onClick={() => handleStatusUpdate(merchant.id, 'APPROVED')}
-                                                            className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded hover:opacity-90"
-                                                        >
-                                                            Approve
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleStatusUpdate(merchant.id, 'REJECTED')}
-                                                            className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200"
-                                                        >
-                                                            Reject
-                                                        </button>
-                                                    </>
-                                                )}
-                                                {merchant.status === 'APPROVED' && (
-                                                    <button
-                                                        onClick={() => handleLimitUpdate(merchant.id, merchant.maxDevices)}
-                                                        className="text-xs border px-2 py-1 rounded hover:bg-muted"
-                                                    >
-                                                        Set Limit
-                                                    </button>
-                                                )}
-
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="sm">
-                                                            <MoreVertical className="h-4 w-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem onClick={() => openDeleteDialog('soft', merchant)}>
-                                                            <Archive className="mr-2 h-4 w-4" />
-                                                            Archive
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem
-                                                            onClick={() => openDeleteDialog('hard', merchant)}
-                                                            className="text-red-600 focus:text-red-600"
-                                                        >
-                                                            <Trash2 className="mr-2 h-4 w-4" />
-                                                            Delete Permanently
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+            <div className="space-y-4 p-4 md:p-6">
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">Merchant Management</h1>
+                        <p className="text-sm text-muted-foreground">View, approve, and manage merchant accounts.</p>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+
+                {/* Mobile-First Card Layout */}
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {merchants.map((merchant) => (
+                        <Card key={merchant.id} className="relative">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-start justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Building2 className="h-5 w-5 text-muted-foreground" />
+                                        <CardTitle className="text-lg">{merchant.businessName}</CardTitle>
+                                    </div>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                                <MoreVertical className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => openDeleteDialog('soft', merchant)}>
+                                                <Archive className="mr-2 h-4 w-4" />
+                                                Archive
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                onClick={() => openDeleteDialog('hard', merchant)}
+                                                className="text-red-600 focus:text-red-600"
+                                            >
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Delete Permanently
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Mail className="h-4 w-4" />
+                                    {merchant.email}
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium">Status</span>
+                                    <Badge variant={getStatusVariant(merchant.status)}>
+                                        {merchant.status}
+                                    </Badge>
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium">Device Usage</span>
+                                    <div className="flex items-center gap-1 text-sm">
+                                        <Package className="h-4 w-4 text-muted-foreground" />
+                                        <span className="font-mono">{merchant.usedDevices} / {merchant.maxDevices}</span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Calendar className="h-3 w-3" />
+                                    Joined {new Date(merchant.joinedAt).toLocaleDateString()}
+                                </div>
+
+                                <div className="flex flex-wrap gap-2 pt-2">
+                                    {merchant.status === 'PENDING' && (
+                                        <>
+                                            <Button
+                                                onClick={() => handleStatusUpdate(merchant.id, 'APPROVED')}
+                                                size="sm"
+                                                className="flex-1"
+                                            >
+                                                Approve
+                                            </Button>
+                                            <Button
+                                                onClick={() => handleStatusUpdate(merchant.id, 'REJECTED')}
+                                                size="sm"
+                                                variant="destructive"
+                                                className="flex-1"
+                                            >
+                                                Reject
+                                            </Button>
+                                        </>
+                                    )}
+                                    {merchant.status === 'APPROVED' && (
+                                        <Button
+                                            onClick={() => handleLimitUpdate(merchant.id, merchant.maxDevices)}
+                                            size="sm"
+                                            variant="outline"
+                                            className="w-full"
+                                        >
+                                            Set Device Limit
+                                        </Button>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+
+                {merchants.length === 0 && (
+                    <Card>
+                        <CardContent className="flex flex-col items-center justify-center py-12">
+                            <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+                            <p className="text-muted-foreground">No merchants found</p>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
 
             {/* Delete Confirmation Dialog */}
             <AlertDialog open={deleteDialog.open} onOpenChange={(open: boolean) => !open && setDeleteDialog({ open: false, type: null, merchant: null })}>

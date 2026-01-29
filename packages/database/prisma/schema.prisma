@@ -309,8 +309,9 @@ model MerchantProfile {
   maxAgents          Int   @default(2)
   enabledDeviceTypes Json? @default("[\"ANDROID\"]")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft delete timestamp
 }
 
 model Transaction {
