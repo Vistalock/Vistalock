@@ -269,7 +269,7 @@ export default function ApplicationsPage() {
             />
 
             {/* Delete Confirmation Dialog */}
-            <AlertDialog open={deleteDialog.open} onOpenChange={(open) => !open && setDeleteDialog({ open: false, type: null, app: null })}>
+            <AlertDialog open={deleteDialog.open} onOpenChange={(open: boolean) => !open && setDeleteDialog({ open: false, type: null, app: null })}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>
