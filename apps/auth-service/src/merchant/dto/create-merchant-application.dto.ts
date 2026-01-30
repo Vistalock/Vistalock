@@ -10,7 +10,10 @@ import {
     IsUrl,
     Length,
     IsBoolean,
-    IsNumberString
+    IsNumberString,
+    IsInt,
+    Min,
+    Max
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -26,6 +29,10 @@ class DirectorDto {
 
     @IsString()
     @IsOptional()
+    role?: string; // Owner, Partner, Director
+
+    @IsDateString()
+    @IsOptional()
     dob?: string;
 
     @IsString()
@@ -34,12 +41,17 @@ class DirectorDto {
 
     @IsString()
     @IsOptional()
-    address?: string;
+    address?: string; // Residential Address
 
-    @IsString()
+    @IsNumberString()
+    @Length(11, 11, { message: 'NIN must be exactly 11 digits' })
     @IsOptional()
-    @Matches(/^[0-9]{11}$/, { message: 'NIN must be exactly 11 digits' })
     nin?: string;
+
+    @IsNumberString()
+    @Length(11, 11, { message: 'BVN must be exactly 11 digits' })
+    @IsOptional()
+    bvn?: string;
 
     @IsString()
     @IsOptional()
@@ -47,6 +59,63 @@ class DirectorDto {
 
     @IsOptional()
     share?: string | number;
+}
+
+class BranchDto {
+    @IsString()
+    @IsOptional()
+    name?: string;
+
+    @IsString()
+    @IsOptional()
+    address?: string;
+
+    @IsString()
+    @IsOptional()
+    state?: string;
+
+    @IsString()
+    @IsOptional()
+    lga?: string;
+
+    @IsString()
+    @IsOptional()
+    managerName?: string;
+
+    @IsString()
+    @IsOptional()
+    managerPhone?: string;
+
+    @IsOptional()
+    operatingHours?: any; // Simple string or JSON
+}
+
+class ProductDeclarationDto {
+    @IsArray()
+    @IsString({ each: true })
+    @IsOptional()
+    categories?: string[];
+
+    @IsArray()
+    @IsString({ each: true })
+    @IsOptional()
+    brands?: string[];
+
+    @IsNumberString()
+    @IsOptional()
+    minPrice?: string | number;
+
+    @IsNumberString()
+    @IsOptional()
+    maxPrice?: string | number;
+
+    @IsString()
+    @IsOptional()
+    condition?: string; // NEW, REFURB, BOTH
+
+    @IsString()
+    @IsOptional()
+    monthlyVolume?: string;
 }
 
 class SignatoryDto {
@@ -80,6 +149,10 @@ class BankDetailsDto {
     @IsString()
     @IsOptional()
     accountName?: string;
+
+    @IsString()
+    @IsOptional()
+    accountType?: string; // Savings, Current
 
     @IsNumberString()
     @Length(11, 11, { message: 'BVN must be 11 digits' })
@@ -134,6 +207,14 @@ class ComplianceDto {
     @IsBoolean()
     @IsOptional()
     revenueShare?: boolean;
+
+    @IsBoolean()
+    @IsOptional()
+    bvnConsent?: boolean;
+
+    @IsBoolean()
+    @IsOptional()
+    creditConsent?: boolean;
 }
 
 export class CreateMerchantApplicationDto {
@@ -167,6 +248,17 @@ export class CreateMerchantApplicationDto {
     @IsOptional()
     website?: string;
 
+    @IsString()
+    @IsOptional()
+    state?: string;
+
+    @IsString()
+    @IsOptional()
+    lga?: string;
+
+    @IsOptional()
+    yearsInOperation?: number;
+
     // 2. Contact & Address
     @IsString()
     @Matches(STRICT_NAME_REGEX, { message: 'Contact Name contains invalid symbols' })
@@ -180,6 +272,7 @@ export class CreateMerchantApplicationDto {
     phone: string;
 
     @IsString()
+    @IsOptional()
     businessAddress: string;
 
     @IsString()
@@ -192,6 +285,17 @@ export class CreateMerchantApplicationDto {
     @Type(() => DirectorDto)
     @IsOptional()
     directors?: DirectorDto[];
+
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => BranchDto)
+    @IsOptional()
+    branches?: BranchDto[];
+
+    @ValidateNested()
+    @Type(() => ProductDeclarationDto)
+    @IsOptional()
+    productDeclaration?: ProductDeclarationDto;
 
     @IsArray()
     @ValidateNested({ each: true })

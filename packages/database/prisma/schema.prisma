@@ -177,15 +177,27 @@ model MerchantApplication {
   businessAddress  String // Registered
   operatingAddress String?
 
+  state               String?
+  lga                 String?
+  yearsInOperation    Int?
+
   // 3-9. Complex Data (Stored as JSON for flexibility during application)
-  directors     Json? // [{ name, dob, nationality, address, idType, idNumber, share }]
-  signatories   Json? // [{ name, role, contact, idNumber }]
-  bankDetails   Json? // { bankName, accountName, accountNumber, bvn, settlementCycle }
-  operations    Json? // { yearsInOp, outlets, monthlyVolume, avgPrice, salesChannels }
-  deviceDetails Json? // { types, specs, source, support } - Replaces simple deviceTypes
-  agentDetails  Json? // { expectedCount, location, onboardingMethod }
-  documents     Json? // URL links to uploaded files { certificate, cacStatus, utilityBill, ids, etc }
-  compliance    Json? // { agreedToDataProcessing, agreedToLocking, etc }
+  directors          Json? // [{ name, dob, nationality, address, idType, idNumber, share }]
+  signatories        Json? // [{ name, role, contact, idNumber }]
+  bankDetails        Json? // { bankName, accountName, accountNumber, bvn, settlementCycle }
+  
+  // New JSON Fields for Detailed Sections
+  branches           Json? // [{ name, address, managerName, managerPhone, hours }]
+  productDeclaration Json? // { categories: [], brand: [], minPrice, maxPrice, monthlyVolume, condition }
+  
+  // Legacy / Other
+  operations         Json? // { yearsInOp, outlets, monthlyVolume, avgPrice, salesChannels }
+  deviceDetails      Json? // { types, specs, source, support }
+  agentDetails       Json? // { expectedCount, location, onboardingMethod }
+  
+  documents          Json? // URL links to uploaded files { certificate, cacStatus, utilityBill, ids, etc }
+  compliance         Json? // { agreedToDataProcessing, agreedToLocking, etc }
+  reviews            Json? // Audit trail: [{ stage, adminId, timestamp, passed, notes, checklist }]
 
   status ApplicationStatus @default(PENDING)
 
