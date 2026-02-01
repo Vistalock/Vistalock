@@ -26,7 +26,7 @@ import {
 import { AlertCircle, CheckCircle, XCircle, Eye, MoreVertical, Archive, Trash2 } from 'lucide-react';
 import { SudoModal } from '@/components/ui/sudo-modal';
 import { CreateMerchantModal } from '@/components/ui/create-merchant-modal';
-import { ApplicationDetailsModal } from '@/components/ui/application-details-modal';
+import { ApplicationReviewModal } from '@/components/admin/ApplicationReviewModal';
 import { useToast } from "@/hooks/use-toast";
 
 export default function ApplicationsPage() {
@@ -34,13 +34,14 @@ export default function ApplicationsPage() {
     const [loading, setLoading] = useState(true);
 
     // Modals state
-    const [viewModal, setViewModal] = useState<{ isOpen: boolean, app: any | null }>({ isOpen: false, app: null });
+    const [reviewModal, setReviewModal] = useState<{ isOpen: boolean, app: any | null }>({ isOpen: false, app: null });
     const [createModal, setCreateModal] = useState<{ isOpen: boolean, applicationId: string | null }>({ isOpen: false, applicationId: null });
     const [isSudoOpen, setIsSudoOpen] = useState(false);
     const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: 'soft' | 'hard' | null; app: any }>({ open: false, type: null, app: null });
 
     // Action state
     const [action, setAction] = useState<{ id: string, type: 'APPROVE' | 'REJECT' | 'REVIEW_OPS' | 'REVIEW_RISK' } | null>(null);
+    const [reviewData, setReviewData] = useState<any>(null); // Store checklist/notes
     const { toast } = useToast();
 
     const fetchApplications = async () => {
@@ -62,13 +63,8 @@ export default function ApplicationsPage() {
         fetchApplications();
     }, []);
 
-    const handleAction = (id: string, type: 'APPROVE' | 'REJECT' | 'REVIEW_OPS' | 'REVIEW_RISK') => {
-        setAction({ id, type });
-        setIsSudoOpen(true);
-    };
-
-    const handleView = (app: any) => {
-        setViewModal({ isOpen: true, app });
+    const openReview = (app: any) => {
+        setReviewModal({ isOpen: true, app });
     };
 
     const handleCreateAccount = (id: string) => {
@@ -89,23 +85,15 @@ export default function ApplicationsPage() {
                 ? `${apiUrl}/admin/merchant-applications/${deleteDialog.app.id}/archive`
                 : `${apiUrl}/admin/merchant-applications/${deleteDialog.app.id}`;
 
-            const method = deleteDialog.type === 'soft' ? 'patch' : 'delete';
-
             if (deleteDialog.type === 'soft') {
-                await axios.patch(url, {}, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                await axios.patch(url, {}, { headers: { Authorization: `Bearer ${token}` } });
             } else {
-                await axios.delete(url, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                await axios.delete(url, { headers: { Authorization: `Bearer ${token}` } });
             }
 
             toast({
                 title: "Success",
-                description: deleteDialog.type === 'soft'
-                    ? "Application archived successfully"
-                    : "Application deleted permanently"
+                description: deleteDialog.type === 'soft' ? "Application archived" : "Application deleted"
             });
             fetchApplications();
         } catch (error: any) {
@@ -119,6 +107,28 @@ export default function ApplicationsPage() {
         }
     };
 
+    // Triggered from ReviewModal
+    const submitReview = (actionType: 'APPROVE' | 'REJECT', data?: any) => {
+        if (!reviewModal.app) return;
+        setReviewData(data); // Store checklist data
+
+        // Determine backend action type
+        let backendAction: 'REVIEW_OPS' | 'REVIEW_RISK' | 'APPROVE' | 'REJECT' = 'REJECT';
+
+        if (actionType === 'REJECT') {
+            backendAction = 'REJECT';
+        } else {
+            // Processing Approvals based on stage
+            if (reviewModal.app.status === 'PENDING') backendAction = 'REVIEW_OPS';
+            else if (reviewModal.app.status === 'OPS_REVIEWED') backendAction = 'REVIEW_RISK';
+            else if (reviewModal.app.status === 'RISK_REVIEWED') backendAction = 'APPROVE';
+        }
+
+        setAction({ id: reviewModal.app.id, type: backendAction });
+        setReviewModal({ isOpen: false, app: null }); // Close review modal
+        setIsSudoOpen(true); // Open Sudo for confirmation
+    };
+
     const handleSudoSuccess = async (sudoToken: string) => {
         if (!action) return;
 
@@ -130,17 +140,28 @@ export default function ApplicationsPage() {
             };
 
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-            const url = `${apiUrl}/admin/merchant-applications/${action.id}/${action.type.toLowerCase()}`;
-            const body = action.type === 'REJECT' ? { reason: 'Admin Rejected' } : {};
+            const url = `${apiUrl}/admin/merchant-applications/${action.id}/${action.type.toLowerCase().replace('_', '-')}`;
+
+            // Construct body: Include reason (if reject) AND reviewData (checklist/notes)
+            const body = {
+                ...(action.type === 'REJECT' ? { reason: reviewData?.notes || 'Admin Rejected' } : {}),
+                ...(reviewData || {})
+            };
 
             await axios.post(url, body, { headers });
 
+            toast({ title: "Success", description: "Application status updated" });
             fetchApplications();
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            alert('Operation failed');
+            toast({
+                title: "Error",
+                description: err.response?.data?.message || "Operation failed",
+                variant: "destructive"
+            });
         } finally {
             setAction(null);
+            setReviewData(null);
         }
     };
 
@@ -189,31 +210,25 @@ export default function ApplicationsPage() {
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <div className="flex justify-end gap-2 items-center">
-                                                <Button size="icon" variant="ghost" title="View Details" onClick={() => handleView(app)}>
+                                                <Button size="icon" variant="ghost" title="Review Details" onClick={() => openReview(app)}>
                                                     <Eye className="h-4 w-4 text-blue-600" />
                                                 </Button>
 
                                                 {app.status === 'PENDING' && (
-                                                    <Button size="sm" variant="outline" className="h-8 text-xs bg-yellow-50 text-yellow-700 border-yellow-200" onClick={() => handleAction(app.id, 'REVIEW_OPS')}>
-                                                        Ops Review
+                                                    <Button size="sm" variant="outline" className="h-8 text-xs bg-yellow-50 text-yellow-700 border-yellow-200" onClick={() => openReview(app)}>
+                                                        Start Ops Review
                                                     </Button>
                                                 )}
 
                                                 {app.status === 'OPS_REVIEWED' && (
-                                                    <Button size="sm" variant="outline" className="h-8 text-xs bg-orange-50 text-orange-700 border-orange-200" onClick={() => handleAction(app.id, 'REVIEW_RISK')}>
-                                                        Risk Review
+                                                    <Button size="sm" variant="outline" className="h-8 text-xs bg-orange-50 text-orange-700 border-orange-200" onClick={() => openReview(app)}>
+                                                        Start Risk Review
                                                     </Button>
                                                 )}
 
                                                 {app.status === 'RISK_REVIEWED' && (
-                                                    <Button size="sm" variant="outline" className="h-8 text-xs bg-green-50 text-green-700 border-green-200" onClick={() => handleAction(app.id, 'APPROVE')}>
+                                                    <Button size="sm" variant="outline" className="h-8 text-xs bg-green-50 text-green-700 border-green-200" onClick={() => openReview(app)}>
                                                         Final Approve
-                                                    </Button>
-                                                )}
-
-                                                {app.status !== 'APPROVED' && app.status !== 'REJECTED' && (
-                                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-red-600 hover:bg-red-50" onClick={() => handleAction(app.id, 'REJECT')}>
-                                                        <XCircle className="h-4 w-4" />
                                                     </Button>
                                                 )}
 
@@ -234,12 +249,9 @@ export default function ApplicationsPage() {
                                                             <Archive className="mr-2 h-4 w-4" />
                                                             Archive
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem
-                                                            onClick={() => openDeleteDialog('hard', app)}
-                                                            className="text-red-600 focus:text-red-600"
-                                                        >
+                                                        <DropdownMenuItem onClick={() => openDeleteDialog('hard', app)} className="text-red-600">
                                                             <Trash2 className="mr-2 h-4 w-4" />
-                                                            Delete Permanently
+                                                            Delete
                                                         </DropdownMenuItem>
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
@@ -262,19 +274,19 @@ export default function ApplicationsPage() {
             <CreateMerchantModal
                 isOpen={createModal.isOpen}
                 onClose={() => setCreateModal({ ...createModal, isOpen: false })}
-                onSuccess={() => {
-                    fetchApplications(); // Refresh list
-                }}
+                onSuccess={() => fetchApplications()}
                 applicationId={createModal.applicationId}
             />
 
-            <ApplicationDetailsModal
-                isOpen={viewModal.isOpen}
-                onClose={() => setViewModal({ isOpen: false, app: null })}
-                application={viewModal.app}
+            {/* Interactive Review Modal */}
+            <ApplicationReviewModal
+                isOpen={reviewModal.isOpen}
+                onClose={() => setReviewModal({ isOpen: false, app: null })}
+                application={reviewModal.app}
+                onReview={submitReview}
+                loading={false}
             />
 
-            {/* Delete Confirmation Dialog */}
             <AlertDialog open={deleteDialog.open} onOpenChange={(open: boolean) => !open && setDeleteDialog({ open: false, type: null, app: null })}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -283,18 +295,15 @@ export default function ApplicationsPage() {
                         </AlertDialogTitle>
                         <AlertDialogDescription>
                             {deleteDialog.type === 'soft'
-                                ? `This will hide "${deleteDialog.app?.businessName}" from the list. You can restore it later if needed.`
-                                : `This will permanently delete "${deleteDialog.app?.businessName}" and cannot be undone. Are you absolutely sure?`
+                                ? `This will hide "${deleteDialog.app?.businessName}" from the list.`
+                                : `This will permanently delete "${deleteDialog.app?.businessName}".`
                             }
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={confirmDelete}
-                            className={deleteDialog.type === 'hard' ? 'bg-red-600 hover:bg-red-700' : ''}
-                        >
-                            {deleteDialog.type === 'soft' ? 'Archive' : 'Delete Permanently'}
+                        <AlertDialogAction onClick={confirmDelete} className={deleteDialog.type === 'hard' ? 'bg-red-600' : ''}>
+                            {deleteDialog.type === 'soft' ? 'Archive' : 'Delete'}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

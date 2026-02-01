@@ -37,21 +37,21 @@ export class MerchantApplicationController {
     // ADMIN: Ops Review
     @UseGuards(AuthGuard('jwt'))
     @Post('admin/merchant-applications/:id/review-ops')
-    async reviewByOps(@Request() req, @Param('id') id: string) {
+    async reviewByOps(@Request() req, @Param('id') id: string, @Body() body: any) {
         if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'OPS_ADMIN' && req.user.role !== 'ADMIN') {
             throw new UnauthorizedException('Access denied');
         }
-        return this.appService.reviewByOps(id, req.user.userId);
+        return this.appService.reviewByOps(id, req.user.userId, body);
     }
 
     // ADMIN: Risk Review
     @UseGuards(AuthGuard('jwt'))
     @Post('admin/merchant-applications/:id/review-risk')
-    async reviewByRisk(@Request() req, @Param('id') id: string) {
+    async reviewByRisk(@Request() req, @Param('id') id: string, @Body() body: any) {
         if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'OPS_ADMIN' && req.user.role !== 'ADMIN') {
             throw new UnauthorizedException('Access denied');
         }
-        return this.appService.reviewByRisk(id, req.user.userId);
+        return this.appService.reviewByRisk(id, req.user.userId, body);
     }
 
     // ADMIN: Final Approval
