@@ -264,6 +264,8 @@ model Device {
   lastHeartbeat DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+
+  lockEvents    LockEvent[]
 }
 
 enum TransactionType {

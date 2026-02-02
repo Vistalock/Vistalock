@@ -40,8 +40,9 @@ export default function ApplicationsPage() {
     const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: 'soft' | 'hard' | null; app: any }>({ open: false, type: null, app: null });
 
     // Action state
-    const [action, setAction] = useState<{ id: string, type: 'APPROVE' | 'REJECT' | 'REVIEW_OPS' | 'REVIEW_RISK' } | null>(null);
+    const [action, setAction] = useState<{ id: string, type: 'APPROVE' | 'REJECT' | 'REVIEW_OPS' | 'REVIEW_RISK' | 'AUTO_ASSESS' } | null>(null);
     const [reviewData, setReviewData] = useState<any>(null); // Store checklist/notes
+    const [autoAssessing, setAutoAssessing] = useState<string | null>(null); // Track which app is being auto-assessed
     const { toast } = useToast();
 
     const fetchApplications = async () => {
@@ -129,6 +130,44 @@ export default function ApplicationsPage() {
         setIsSudoOpen(true); // Open Sudo for confirmation
     };
 
+    const handleAutoAssess = async (appId: string) => {
+        setAutoAssessing(appId);
+        try {
+            const token = localStorage.getItem('token');
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            const res = await axios.post(
+                `${apiUrl}/admin/merchant-applications/${appId}/auto-assess-risk`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            // Check if auto-approved or needs manual review
+            const reviews = res.data.reviews || [];
+            const latestReview = reviews[reviews.length - 1];
+
+            if (latestReview?.automated) {
+                const score = latestReview.creditScore || 0;
+                const decision = latestReview.decision;
+
+                toast({
+                    title: decision === 'APPROVED' ? "✅ Auto-Approved" : decision === 'REJECTED' ? "❌ Auto-Rejected" : "⚠️ Manual Review Required",
+                    description: `Credit Score: ${score}. ${latestReview.reasons?.join(', ') || ''}`,
+                    variant: decision === 'REJECTED' ? 'destructive' : 'default'
+                });
+            }
+
+            fetchApplications();
+        } catch (error: any) {
+            toast({
+                title: "Error",
+                description: error.response?.data?.message || "Auto-assessment failed",
+                variant: "destructive"
+            });
+        } finally {
+            setAutoAssessing(null);
+        }
+    };
+
     const handleSudoSuccess = async (sudoToken: string) => {
         if (!action) return;
 
@@ -204,9 +243,25 @@ export default function ApplicationsPage() {
                                         </td>
                                         <td className="px-4 py-3">{app.monthlyVolume || 'N/A'}</td>
                                         <td className="px-4 py-3">
-                                            <Badge variant={app.status === 'PENDING' ? 'outline' : app.status === 'APPROVED' ? 'default' : 'destructive'}>
-                                                {app.status}
-                                            </Badge>
+                                            <div className="flex flex-col gap-1">
+                                                <Badge variant={app.status === 'PENDING' ? 'outline' : app.status === 'APPROVED' ? 'default' : 'destructive'}>
+                                                    {app.status}
+                                                </Badge>
+                                                {(() => {
+                                                    const reviews = app.reviews || [];
+                                                    const autoReview = reviews.find((r: any) => r.automated);
+                                                    if (autoReview?.creditScore) {
+                                                        const score = autoReview.creditScore;
+                                                        const color = score >= 700 ? 'bg-green-100 text-green-800' : score >= 500 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800';
+                                                        return (
+                                                            <span className={`text-xs px-2 py-0.5 rounded ${color}`}>
+                                                                Score: {score}
+                                                            </span>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3 text-right">
                                             <div className="flex justify-end gap-2 items-center">
@@ -221,9 +276,25 @@ export default function ApplicationsPage() {
                                                 )}
 
                                                 {app.status === 'OPS_REVIEWED' && (
-                                                    <Button size="sm" variant="outline" className="h-8 text-xs bg-orange-50 text-orange-700 border-orange-200" onClick={() => openReview(app)}>
-                                                        Start Risk Review
-                                                    </Button>
+                                                    <>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="h-8 text-xs bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+                                                            onClick={() => handleAutoAssess(app.id)}
+                                                            disabled={autoAssessing === app.id}
+                                                        >
+                                                            {autoAssessing === app.id ? '🔄 Assessing...' : '🤖 Auto-Assess Risk'}
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="h-8 text-xs bg-orange-50 text-orange-700 border-orange-200"
+                                                            onClick={() => openReview(app)}
+                                                        >
+                                                            Manual Risk Review
+                                                        </Button>
+                                                    </>
                                                 )}
 
                                                 {app.status === 'RISK_REVIEWED' && (

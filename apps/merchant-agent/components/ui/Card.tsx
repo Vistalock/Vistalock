@@ -6,18 +6,23 @@ interface CardProps {
     children: ReactNode;
     style?: ViewStyle;
     padding?: number;
+    variant?: 'elevated' | 'outlined';
 }
 
-export function Card({ children, style, padding = 16 }: CardProps) {
+export function Card({ children, style, padding = 16, variant = 'elevated' }: CardProps) {
     return (
-        <View style={[styles.card, { padding }, style]}>
+        <View style={[
+            variant === 'elevated' ? styles.elevated : styles.outlined,
+            { padding },
+            style
+        ]}>
             {children}
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    card: {
+    elevated: {
         backgroundColor: colors.white,
         borderRadius: 12,
         shadowColor: '#000',
@@ -26,4 +31,10 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 3,
     },
+    outlined: {
+        backgroundColor: colors.white,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.gray[200] || '#e2e8f0',
+    }
 });

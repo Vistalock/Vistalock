@@ -44,6 +44,16 @@ export class MerchantApplicationController {
         return this.appService.reviewByOps(id, req.user.userId, body);
     }
 
+    // ADMIN: Automated Risk Assessment
+    @UseGuards(AuthGuard('jwt'))
+    @Post('admin/merchant-applications/:id/auto-assess-risk')
+    async autoAssessRisk(@Request() req, @Param('id') id: string) {
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'OPS_ADMIN' && req.user.role !== 'ADMIN') {
+            throw new UnauthorizedException('Access denied');
+        }
+        return this.appService.autoAssessRisk(id, req.user.userId);
+    }
+
     // ADMIN: Risk Review
     @UseGuards(AuthGuard('jwt'))
     @Post('admin/merchant-applications/:id/review-risk')

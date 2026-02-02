@@ -1,15 +1,20 @@
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaClient, ApplicationStatus, Role, BusinessType, MerchantStatus } from '@vistalock/database';
 import { EmailService } from '../email/email.service';
+import { CreditServiceAdapter } from '../integration/credit-service.adapter';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class MerchantApplicationService {
+    private readonly logger = new Logger(MerchantApplicationService.name);
     private prisma = new PrismaClient();
 
-    constructor(private emailService: EmailService) { }
+    constructor(
+        private emailService: EmailService,
+        private creditAdapter: CreditServiceAdapter
+    ) { }
 
     async submitApplication(data: any) {
         const application = await this.prisma.merchantApplication.create({
@@ -207,6 +212,59 @@ export class MerchantApplicationService {
                 reviews: [...currentReviews, newReview]
             }
         });
+    }
+
+    /**
+     * Automated Risk Assessment using Credit Service
+     * Can be triggered after Ops Review or manually
+     */
+    async autoAssessRisk(id: string, systemAdminId: string = 'SYSTEM_AUTO_RISK') {
+        const app = await this.prisma.merchantApplication.findUnique({ where: { id } });
+        if (!app) throw new Error('Application not found');
+
+        this.logger.log(`Running automated risk assessment for ${app.businessName}`);
+
+        // Call Credit Service
+        const creditResult = await this.creditAdapter.assessMerchantRisk(app);
+
+        // Store result in reviews
+        const currentReviews = (app.reviews as any[]) || [];
+        const autoReview = {
+            stage: 'RISK_AUTO',
+            adminId: systemAdminId,
+            timestamp: new Date(),
+            creditScore: creditResult.score,
+            decision: creditResult.decision,
+            reasons: creditResult.reasons,
+            automated: true
+        };
+
+        // Decision Logic
+        if (creditResult.decision === 'APPROVED' && creditResult.score >= 700) {
+            // Auto-approve to RISK_REVIEWED
+            this.logger.log(`Auto-approving risk for ${app.businessName} (Score: ${creditResult.score})`);
+            return this.prisma.merchantApplication.update({
+                where: { id },
+                data: {
+                    status: ApplicationStatus.RISK_REVIEWED,
+                    processedBy: systemAdminId,
+                    reviews: [...currentReviews, autoReview]
+                }
+            });
+        } else if (creditResult.decision === 'REJECTED') {
+            // Auto-reject
+            this.logger.warn(`Auto-rejecting ${app.businessName} (Score: ${creditResult.score})`);
+            return this.rejectApplication(id, systemAdminId, `Automated Risk Assessment: ${creditResult.reasons?.join(', ')}`);
+        } else {
+            // Manual review required
+            this.logger.log(`Flagging ${app.businessName} for manual risk review`);
+            return this.prisma.merchantApplication.update({
+                where: { id },
+                data: {
+                    reviews: [...currentReviews, { ...autoReview, requiresManualReview: true }]
+                }
+            });
+        }
     }
 
     async reviewByRisk(id: string, adminId: string, reviewData: any) {

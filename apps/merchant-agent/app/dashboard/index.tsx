@@ -129,7 +129,7 @@ export default function Dashboard() {
                     title="Scan Device"
                     description="Check lock status"
                     icon={Scan}
-                    onPress={() => router.push('/scan')}
+                    onPress={() => router.push('/dashboard/device-status')}
                 />
 
                 {/* Recent Activity Section (Placeholder) */}
