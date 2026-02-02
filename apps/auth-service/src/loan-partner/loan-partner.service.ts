@@ -208,6 +208,7 @@ export class LoanPartnerService {
                 monthlyRepayment: dto.monthlyRepayment,
                 totalRepayment: (dto.monthlyRepayment * dto.tenure), // Simple calc
                 outstandingAmount: (dto.monthlyRepayment * dto.tenure), // Initial full debt
+                interestRate: dto.interestRate || 0, // Add interest rate
 
                 status: 'ACTIVE', // Or PENDING if waiting approval?
             }

@@ -76,6 +76,10 @@ export class LpisCreateLoanDto {
     @IsNumber()
     monthlyRepayment: number;
 
+    @IsNumber()
+    @IsOptional()
+    interestRate?: number; // Annual interest rate percentage
+
     @IsOptional()
     repaymentSchedule?: any[]; // Array of due dates
 }
