@@ -137,7 +137,7 @@ export default function Step6_Compliance({ formData, updateForm, onNext, onBack 
 
             <div className="flex justify-between pt-4">
                 <Button variant="outline" onClick={onBack}>Back</Button>
-                <Button onClick={handleSubmit} className="w-32">
+                <Button onClick={handleSubmit} className="px-6 py-2.5">
                     Submit Application
                 </Button>
             </div>

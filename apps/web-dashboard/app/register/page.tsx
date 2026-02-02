@@ -76,10 +76,12 @@ export default function RegisterPage() {
     };
 
     const handleSubmit = async () => {
+        console.log('🚀 Submit button clicked!');
         setLoading(true);
         setSubmitError('');
 
         try {
+            console.log('📝 Processing files...');
             // 1. Process Files
             const fileFields = [
                 { key: 'directorIdFile', name: 'director_id' },
@@ -96,6 +98,7 @@ export default function RegisterPage() {
             for (const field of fileFields) {
                 const file = (formData as any)[field.key] as File | null;
                 if (file) {
+                    console.log(`📎 Processing ${field.name}: ${file.name}`);
                     const content = await fileToBase64(file);
                     documents[field.name] = {
                         name: file.name,
@@ -105,6 +108,8 @@ export default function RegisterPage() {
                     };
                 }
             }
+
+            console.log('✅ Files processed:', Object.keys(documents));
 
             // 2. Construct Payload
             const payload = {
@@ -170,22 +175,36 @@ export default function RegisterPage() {
             };
 
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+            console.log('🌐 Submitting to:', `${apiUrl}/auth/merchant/apply`);
+            console.log('📦 Payload size:', JSON.stringify(payload).length, 'bytes');
+
             const res = await fetch(`${apiUrl}/auth/merchant/apply`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 
+            console.log('📡 Response status:', res.status, res.statusText);
+
             if (!res.ok) {
                 const data = await res.json();
+                console.error('❌ Server error:', data);
                 throw new Error(data.message || 'Submission failed');
             }
+
+            const responseData = await res.json();
+            console.log('✅ Success!', responseData);
 
             router.push('/application-submitted');
 
         } catch (err: any) {
-            console.error(err);
-            setSubmitError(err.message || "An error occurred during submission");
+            console.error('💥 Submission error:', err);
+            console.error('Error details:', {
+                message: err.message,
+                stack: err.stack,
+                name: err.name
+            });
+            setSubmitError(err.message || "An error occurred during submission. Please check the console for details.");
             setLoading(false);
         }
     };
