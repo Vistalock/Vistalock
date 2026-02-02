@@ -148,27 +148,72 @@ export default function Step1_Principal({ formData, updateForm, onNext }: StepPr
                     </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                {/* Identity Verification Choice */}
+                <div className="space-y-4 pt-2 border-t">
                     <div className="space-y-2">
-                        <Label>NIN (11 Digits)</Label>
-                        <Input
-                            value={formData.directorNin}
-                            onChange={e => updateForm('directorNin', e.target.value.replace(/\D/g, '').slice(0, 11))}
-                            maxLength={11}
-                            className={errors.directorNin ? "border-red-500" : ""}
-                        />
-                        {errors.directorNin && <p className="text-xs text-red-500">{errors.directorNin}</p>}
+                        <Label>Identity Verification Method *</Label>
+                        <p className="text-xs text-muted-foreground">Choose one verification method</p>
+                        <div className="flex gap-6 pt-2">
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="nin"
+                                    name="verificationType"
+                                    value="NIN"
+                                    checked={formData.verificationType === 'NIN'}
+                                    onChange={(e) => updateForm('verificationType', e.target.value)}
+                                    className="h-4 w-4 text-primary"
+                                />
+                                <label htmlFor="nin" className="text-sm font-medium cursor-pointer">
+                                    National Identity Number (NIN)
+                                </label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="radio"
+                                    id="bvn"
+                                    name="verificationType"
+                                    value="BVN"
+                                    checked={formData.verificationType === 'BVN'}
+                                    onChange={(e) => updateForm('verificationType', e.target.value)}
+                                    className="h-4 w-4 text-primary"
+                                />
+                                <label htmlFor="bvn" className="text-sm font-medium cursor-pointer">
+                                    Bank Verification Number (BVN)
+                                </label>
+                            </div>
+                        </div>
                     </div>
-                    <div className="space-y-2">
-                        <Label>BVN (11 Digits)</Label>
-                        <Input
-                            value={formData.directorBvn}
-                            onChange={e => updateForm('directorBvn', e.target.value.replace(/\D/g, '').slice(0, 11))}
-                            maxLength={11}
-                            className={errors.directorBvn ? "border-red-500" : ""}
-                        />
-                        {errors.directorBvn && <p className="text-xs text-red-500">{errors.directorBvn}</p>}
-                    </div>
+
+                    {/* Conditional NIN Field */}
+                    {formData.verificationType === 'NIN' && (
+                        <div className="space-y-2">
+                            <Label>NIN (11 Digits) *</Label>
+                            <Input
+                                value={formData.directorNin}
+                                onChange={e => updateForm('directorNin', e.target.value.replace(/\D/g, '').slice(0, 11))}
+                                maxLength={11}
+                                placeholder="12345678901"
+                                className={errors.directorNin ? "border-red-500" : ""}
+                            />
+                            {errors.directorNin && <p className="text-xs text-red-500">{errors.directorNin}</p>}
+                        </div>
+                    )}
+
+                    {/* Conditional BVN Field */}
+                    {formData.verificationType === 'BVN' && (
+                        <div className="space-y-2">
+                            <Label>BVN (11 Digits) *</Label>
+                            <Input
+                                value={formData.directorBvn}
+                                onChange={e => updateForm('directorBvn', e.target.value.replace(/\D/g, '').slice(0, 11))}
+                                maxLength={11}
+                                placeholder="22334455667"
+                                className={errors.directorBvn ? "border-red-500" : ""}
+                            />
+                            {errors.directorBvn && <p className="text-xs text-red-500">{errors.directorBvn}</p>}
+                        </div>
+                    )}
                 </div>
 
                 <div className="space-y-2">

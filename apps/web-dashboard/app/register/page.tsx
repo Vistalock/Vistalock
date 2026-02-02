@@ -33,6 +33,7 @@ export default function RegisterPage() {
         // Step 1
         email: '', password: '', confirmPassword: '',
         directorName: '', directorRole: 'Owner', directorPhone: '',
+        verificationType: 'NIN', // Default to NIN
         directorNin: '', directorBvn: '', directorDob: '', directorAddress: '',
         directorIdFile: null, directorPassportFile: null,
 
@@ -42,6 +43,7 @@ export default function RegisterPage() {
         yearsInOperation: 0, website: '', businessAddress: '', state: '', lga: '',
         cacCertificateFile: null, cacStatusFile: null,
         tinCertificateFile: null, utilityBillFile: null,
+        storeFrontPhoto: null, storeInteriorPhoto: null, // NEW
 
         // Step 3
         branches: [],
@@ -92,6 +94,8 @@ export default function RegisterPage() {
                 utility_bill: formData.utilityBillFile,
                 tin_cert: formData.tinCertificateFile,
                 signed_agreement: formData.agreementFile,
+                store_front: formData.storeFrontPhoto, // NEW
+                store_interior: formData.storeInteriorPhoto, // NEW
             };
 
             console.log('✅ Document URLs collected:', Object.keys(documents).filter(k => (documents as any)[k]));
@@ -122,8 +126,9 @@ export default function RegisterPage() {
                     name: formData.directorName,
                     role: formData.directorRole,
                     phone: formData.directorPhone,
-                    nin: formData.directorNin,
-                    bvn: formData.directorBvn,
+                    verificationType: formData.verificationType, // NEW
+                    nin: formData.verificationType === 'NIN' ? formData.directorNin : undefined,
+                    bvn: formData.verificationType === 'BVN' ? formData.directorBvn : undefined,
                     dob: formData.directorDob,
                     address: formData.directorAddress,
                 }],

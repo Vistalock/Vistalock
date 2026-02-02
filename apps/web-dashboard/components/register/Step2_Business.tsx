@@ -197,6 +197,33 @@ export default function Step2_Business({ formData, updateForm, onNext, onBack }:
                         />
                     </div>
                 </div>
+
+                {/* Store Photos */}
+                <div className="space-y-4 pt-4 border-t">
+                    <h4 className="font-medium">Business Premises Photos</h4>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                            <FileUploader
+                                label="Store Front Photo (Exterior)"
+                                description="Clear photo showing your business signage and entrance"
+                                fileUrl={formData.storeFrontPhoto}
+                                onFileChange={val => updateForm('storeFrontPhoto', val)}
+                                accept=".jpg,.jpeg,.png"
+                                required
+                            />
+                            {errors.storeFrontPhoto && <p className="text-xs text-red-500">{errors.storeFrontPhoto}</p>}
+                        </div>
+                        <div className="space-y-2">
+                            <FileUploader
+                                label="Store Interior Photo (Optional)"
+                                description="Photo of your store interior or product display"
+                                fileUrl={formData.storeInteriorPhoto}
+                                onFileChange={val => updateForm('storeInteriorPhoto', val)}
+                                accept=".jpg,.jpeg,.png"
+                            />
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div className="flex justify-between pt-4">

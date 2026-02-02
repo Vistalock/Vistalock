@@ -8,8 +8,11 @@ export interface RegistrationData {
     directorRole: 'Owner' | 'Director' | 'Partner';
     directorPhone: string;
     directorEmail?: string;
+    verificationType: 'NIN' | 'BVN'; // NEW: Choose verification method
     directorNin: string;
     directorBvn: string;
+    verificationStatus?: 'PENDING' | 'VERIFIED' | 'FAILED'; // NEW
+    verifiedName?: string; // NEW: Name from verification API
     directorDob: string;
     directorAddress: string;
     directorIdFile: string | null; // URL from Vercel Blob
@@ -31,6 +34,8 @@ export interface RegistrationData {
     cacStatusFile: string | null; // URL from Vercel Blob
     tinCertificateFile: string | null; // URL from Vercel Blob
     utilityBillFile: string | null; // URL from Vercel Blob
+    storeFrontPhoto: string | null; // NEW: Store exterior photo
+    storeInteriorPhoto: string | null; // NEW: Store interior photo (optional)
 
     // Step 3: Branches (Dynamic)
     branches: BranchData[];
