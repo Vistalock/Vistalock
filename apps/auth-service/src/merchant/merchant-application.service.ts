@@ -54,7 +54,7 @@ export class MerchantApplicationService {
                 const existingNIN = await this.prisma.merchantApplication.findFirst({
                     where: {
                         directors: {
-                            path: '[0].nin',
+                            path: ['0', 'nin'],
                             equals: director.nin
                         }
                     }
@@ -68,7 +68,7 @@ export class MerchantApplicationService {
                 const existingBVN = await this.prisma.merchantApplication.findFirst({
                     where: {
                         directors: {
-                            path: '[0].bvn',
+                            path: ['0', 'bvn'],
                             equals: director.bvn
                         }
                     }
