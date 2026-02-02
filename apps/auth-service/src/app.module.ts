@@ -16,7 +16,10 @@ import { StorageModule } from './storage/storage.module';
 import { AgentsModule } from './agents/agents.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { CreditModule } from './credit/credit.module';
+import { CreditModule } from './credit/credit.module';
 import { PaymentsModule } from './payments/payments.module';
+import { LoanPartnerModule } from './loan-partner/loan-partner.module';
+
 
 @Module({
   imports: [
@@ -39,8 +42,10 @@ import { PaymentsModule } from './payments/payments.module';
     DeviceControlModule,
     DevicesModule,
     CreditModule,
-    PaymentsModule
+    PaymentsModule,
+    LoanPartnerModule
   ],
+
   controllers: [],
   providers: [
     {

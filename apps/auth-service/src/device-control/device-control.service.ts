@@ -1,110 +1,111 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-// @ts-ignore
-import { PrismaClient } from '@vistalock/database';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { PrismaService } from '../prisma.service';
 
 @Injectable()
 export class DeviceControlService {
-    private prisma: PrismaClient;
+    private readonly logger = new Logger(DeviceControlService.name);
 
-    constructor() {
-        this.prisma = new PrismaClient({
-            datasources: { db: { url: process.env.DATABASE_URL } }
-        });
-    }
+    constructor(private prisma: PrismaService) { }
 
+    // === EXISTING: POLICY PULL (Device asks: "Build me a policy") ===
     async getPolicy(imei: string) {
+        // Retrieve the latest "Lock Event" or Current Status
         const device = await this.prisma.device.findUnique({
             where: { imei },
             include: {
                 loans: {
-                    where: { status: { in: ['ACTIVE', 'DEFAULTED'] } },
-                    include: { payments: { where: { status: { in: ['PENDING', 'LATE'] } } } }
+                    where: { status: { in: ['ACTIVE', 'DEFAULTED', 'OVERDUE'] as any } }, // Cast for safety if enum mismatches
+                    orderBy: { createdAt: 'desc' },
+                    take: 1
                 }
             }
         });
 
         if (!device) throw new NotFoundException('Device not found');
 
-        // Defaults
-        let lock = false;
-        let lockMessage = "";
-        let lockStage = 0;
-        let allowedApps: string[] = [];
+        // Logic:
+        // 1. If Device.status == LOCKED, return HIGH RESTRICTION
+        // 2. If Device.status == UNLOCKED, return NORMAL
+        // 3. If Pending, return SETUP MODE
 
-        // Manual Lock Override
-        if (device.status === 'LOCKED') {
-            lock = true;
-            lockStage = 3;
-            lockMessage = "Device Locked by Admin. Contact Support.";
-        } else {
-            // Logic Check from Loans
-            const activeLoan = device.loans[0];
-            if (activeLoan) {
-                // Check overdue payments
-                const now = new Date();
-                let maxOverdueDays = 0;
+        // We can also check Loan directly to double-confirm?
+        // Let's rely on the `Device.status` as the Source of Truth for the AGENT.
+        // The `LoanPartnerService` is responsible for updating `Device.status`.
 
-                // @ts-ignore
-                if (activeLoan.payments) {
-                    // @ts-ignore
-                    for (const pay of activeLoan.payments) {
-                        if (new Date(pay.dueDate) < now && pay.status === 'PENDING') {
-                            const diffTime = Math.abs(now.getTime() - new Date(pay.dueDate).getTime());
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            if (diffDays > maxOverdueDays) maxOverdueDays = diffDays;
-                        }
-                    }
-                }
+        const isLocked = device.status === 'LOCKED';
 
-                if (maxOverdueDays > 7) {
-                    // STAGE 3: Full Lock
-                    lock = true;
-                    lockStage = 3;
-                    lockMessage = `Payment Overdue by ${maxOverdueDays} days. Full Lock Active.`;
-                } else if (maxOverdueDays > 3) {
-                    // STAGE 2: Partial Lock
-                    lock = true;
-                    lockStage = 2;
-                    lockMessage = `Payment Overdue. Pay now to avoid full lock.`;
-                    allowedApps = ['com.vistalock.pay', 'com.vistalock.support'];
-                } else if (maxOverdueDays > 0) {
-                    // STAGE 1: Soft Restriction
-                    lock = false; // Not fully locked, but policy restrictions apply
-                    lockStage = 1;
-                    lockMessage = `Payment Due. Please make payment.`;
-                    allowedApps = ['com.whatsapp', 'com.android.phone', 'com.vistalock.pay']; // Block games/social
-                } else {
-                    // STAGE 0: Normal
-                    lockStage = 0;
-                }
-            }
-        }
+        // Find active loan for metadata (e.g. amount due)
+        const loan = device.loans[0];
+        const amountDue = loan ? loan.outstandingAmount : 0;
+        // @ts-ignore
+        const currency = loan ? loan.currency : 'NGN';
 
-        // Return Policy Object (JSON that the Android App understands)
         return {
             imei,
-            lock,
-            lockStage,
-            lockMessage,
-            syncInterval: lock ? 15 : 60, // check more often if locked
-            allowedApps: lockStage > 0 ? allowedApps : ['*'], // * means all allowed
-            emergencyNumber: "911"
+            policyVersion: new Date().getTime(), // Force update
+            lockState: isLocked ? 'LOCKED' : 'UNLOCKED',
+
+            // UI Config for Agent
+            ui: {
+                showOverlay: isLocked,
+                message: isLocked ? "Device is Locked due to overdue payment." : "Device is Active",
+                subMessage: isLocked ? `Outstanding: ${currency} ${amountDue}` : undefined,
+                actionButton: isLocked ? "PAY NOW" : "View Loan",
+                actionUrl: isLocked ? `https://pay.vistalock.com/pay/${loan?.id}` : undefined // Or Partner link
+            },
+
+            // Technical Config
+            syncIntervalSeconds: isLocked ? 300 : 3600, // 5 min vs 1 hour
+            allowedPackages: isLocked ? ['com.vistalock.agent', 'com.android.settings', 'com.android.phone'] : ['*'],
+
+            // Offline Logic (If server unreachable)
+            offlineLockDate: loan?.nextPaymentDue ? new Date(loan.nextPaymentDue).toISOString() : null
         };
     }
 
-    async heartbeat(data: { imei: string; batteryLevel?: number; location?: any; currentLockState?: boolean }) {
-        const device = await this.prisma.device.findUnique({ where: { imei: data.imei } });
-        if (!device) throw new NotFoundException('Device not found');
+    // === NEW: COMMAND PUSH (Server tells Device: "Lock Now") ===
+    // Called by LoanPartnerService or Admin
+    async sendCommand(imei: string, command: 'LOCK' | 'UNLOCK' | 'SOFT_LOCK', reason: string, trigger: string) {
+        this.logger.log(`Executing Command: ${command} on Device ${imei} (Reason: ${reason})`);
 
-        // Update heartbeat
+        // 1. Update Device Status in DB
+        const newStatus = command === 'UNLOCK' ? 'UNLOCKED' : 'LOCKED';
+
         await this.prisma.device.update({
-            where: { imei: data.imei },
+            where: { imei },
+            data: { status: newStatus }
+        });
+
+        // 2. Create Audit Log (LockEvent)
+        // @ts-ignore
+        await this.prisma.lockEvent.create({
             data: {
-                lastHeartbeat: new Date(),
-                // could store battery/location in a separate `DeviceLog` table if needed
+                deviceImei: imei,
+                type: command,
+                reason: reason,
+                triggeredBy: trigger,
+                metadata: { timestamp: new Date() }
             }
         });
 
-        return { status: 'OK', serverTime: new Date() };
+        // 3. Push to Fabric / FCM / Socket (MOCK for now)
+        // TODO: Integrate Firebase Cloud Messaging here to wake up the device.
+        this.fcmPush(imei, { type: 'POLICY_UPDATE' });
+
+        return { status: 'EXECUTED', newStatus };
+    }
+
+    private fcmPush(imei: string, payload: any) {
+        // Mock FCM
+        this.logger.debug(`[MOCK FCM] Sending to ${imei}: ${JSON.stringify(payload)}`);
+    }
+
+    async heartbeat(data: { imei: string }) {
+        // Simple heartbeat
+        await this.prisma.device.update({
+            where: { imei: data.imei },
+            data: { lastHeartbeat: new Date() }
+        });
+        return { status: 'OK' };
     }
 }

@@ -45,9 +45,16 @@ const ADMIN_NAV: NavItem[] = [
     { title: 'System Config', href: '/admin/config', icon: <Settings className="h-4 w-4" /> },
 ];
 
+const PARTNER_NAV: NavItem[] = [
+    { title: 'Overview', href: '/partner/dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { title: 'Loans', href: '/partner/loans', icon: <CreditCard className="h-4 w-4" /> },
+    { title: 'Devices', href: '/partner/devices', icon: <Smartphone className="h-4 w-4" /> }, // Filtered for Partner
+    { title: 'Integration', href: '/partner/settings', icon: <Settings className="h-4 w-4" /> },
+];
+
 interface UnifiedDashboardLayoutProps {
     children: React.ReactNode;
-    role: 'ADMIN' | 'MERCHANT';
+    role: 'ADMIN' | 'MERCHANT' | 'LOAN_PARTNER';
     userEmail?: string;
 }
 
@@ -55,11 +62,16 @@ export default function UnifiedDashboardLayout({ children, role, userEmail }: Un
     const pathname = usePathname();
     const router = useRouter();
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const navItems = role === 'ADMIN' ? ADMIN_NAV : MERCHANT_NAV;
+
+    let navItems = MERCHANT_NAV;
+    if (role === 'ADMIN') navItems = ADMIN_NAV;
+    if (role === 'LOAN_PARTNER') navItems = PARTNER_NAV;
 
     const handleLogout = () => {
         localStorage.removeItem('token');
-        router.push(role === 'ADMIN' ? '/admin/login' : '/login');
+        if (role === 'ADMIN') router.push('/admin/login');
+        else if (role === 'LOAN_PARTNER') router.push('/partner/login');
+        else router.push('/login');
     };
 
     return (

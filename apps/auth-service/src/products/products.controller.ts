@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request, UnauthorizedException, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request, UnauthorizedException, Put, Patch } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ProductsService } from './products.service';
 
@@ -25,6 +25,14 @@ export class ProductsController {
         // If the user is an Agent, they can't create products.
 
         return this.productsService.create(req.user.userId, body);
+    }
+
+    @Patch(':id')
+    async update(@Request() req, @Param('id') id: string, @Body() body: any) {
+        if (req.user.role !== 'MERCHANT') {
+            throw new UnauthorizedException('Only Merchants can update products');
+        }
+        return this.productsService.update(id, req.user.userId, body);
     }
 
     @Get()

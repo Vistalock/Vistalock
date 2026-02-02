@@ -60,6 +60,10 @@ model User {
   merchant   User?   @relation("MerchantAgents", fields: [merchantId], references: [id])
   agents     User[]  @relation("MerchantAgents")
 
+  // Loan Partner Relation (For Dashboard Access)
+  loanPartnerId String?
+  loanPartner   LoanPartner? @relation(fields: [loanPartnerId], references: [id])
+
   // Audit
   auditLogs      AuditLog[]
   agentLoginLogs AgentLoginLog[]
@@ -370,6 +374,10 @@ model Product {
   merchantId String
   merchant   User   @relation(fields: [merchantId], references: [id])
 
+  // Platform Pivot: Product is financed by a specific Loan Partner
+  loanPartnerId String?
+  loanPartner   LoanPartner? @relation(fields: [loanPartnerId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   Loan      Loan[]
@@ -474,6 +482,10 @@ model Loan {
   merchant   User    @relation("MerchantLoans", fields: [merchantId], references: [id])
   agentId    String?
 
+  // Platform Pivot: The Lender
+  loanPartnerId String?
+  loanPartner   LoanPartner? @relation(fields: [loanPartnerId], references: [id])
+
   // Loan Terms
   loanAmount       Float
   downPayment      Float
@@ -555,4 +567,71 @@ model Payment {
   @@index([loanId])
   @@index([status])
   @@index([dueDate])
+}
+
+// ==================== PLATFORM PIVOT MODELS (PHASE 5) ====================
+
+model LoanPartner {
+  id String @id @default(uuid())
+
+  name        String
+  slug        String  @unique // e.g. 'fincra', 'fairmoney'
+  description String?
+  logoUrl     String?
+
+  // API Integration Config
+  baseUrl       String?
+  apiKey        String? // Encrypted
+  webhookSecret String?
+  
+  // Configuration
+  isActive               Boolean @default(true)
+  supportedRepaymentTypes Json?   // ["DAILY", "WEEKLY", "MONTHLY"]
+  maxTenure              Int     @default(12)
+  minDownPaymentPct      Decimal @default(30.0)
+
+  // System
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  loans       Loan[]
+  products    Product[]
+  webhookLogs WebhookLog[]
+  users       User[]
+}
+
+model LockEvent {
+  id String @id @default(uuid())
+
+  deviceImei String
+  device     Device @relation(fields: [deviceImei], references: [imei])
+
+  type        String // SOFT_LOCK, HARD_LOCK, UNLOCK
+  reason      String?
+  triggeredBy String // "SYSTEM", "LOAN_PARTNER_WEBHOOK", "ADMIN_OVERRIDE"
+  
+  metadata    Json? // Snapshot of loan status or API payload
+
+  createdAt DateTime @default(now())
+
+  @@index([deviceImei])
+  @@index([createdAt])
+}
+
+model WebhookLog {
+  id String @id @default(uuid())
+
+  loanPartnerId String
+  loanPartner   LoanPartner @relation(fields: [loanPartnerId], references: [id])
+
+  eventType    String // "PAYMENT_RECEIVED", "DEFAULT", etc
+  payload      Json
+  responseCode Int
+  status       String // "PROCESSED", "FAILED"
+
+  createdAt DateTime @default(now())
+
+  @@index([loanPartnerId])
+  @@index([createdAt])
 }

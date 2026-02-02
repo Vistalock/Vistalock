@@ -43,7 +43,11 @@ export function ApplicationReviewModal({ isOpen, onClose, application, onReview,
 
     const isOpsStage = application.status === 'PENDING';
     const isRiskStage = application.status === 'OPS_REVIEWED';
+    const isFinalStage = application.status === 'RISK_REVIEWED';
+
+    // For final stage, maybe no specific checklist, or a "Final Signoff" checkbox?
     const currentChecklist = isOpsStage ? OPS_CHECKLIST : (isRiskStage ? RISK_CHECKLIST : []);
+    // If Final Stage, we might just want a confirmation button without checklist, or a dummy one.
 
     const toggleCheck = (id: string) => {
         setChecklist(prev => ({ ...prev, [id]: !prev[id] }));
@@ -195,29 +199,35 @@ export function ApplicationReviewModal({ isOpen, onClose, application, onReview,
                             </TabsContent>
 
                             <TabsContent value="review" className="mt-0 space-y-6">
-                                {(isOpsStage || isRiskStage) ? (
+                                {(isOpsStage || isRiskStage || isFinalStage) ? (
                                     <>
                                         <div className="space-y-4">
                                             <div className="flex items-center gap-2">
                                                 <h4 className="font-semibold">Review Checklist</h4>
-                                                <Badge>{isOpsStage ? 'OPS' : 'RISK'}</Badge>
+                                                <Badge>{isOpsStage ? 'OPS' : (isRiskStage ? 'RISK' : 'FINAL')}</Badge>
                                             </div>
-                                            <Card>
-                                                <CardContent className="p-4 space-y-3">
-                                                    {currentChecklist.map(item => (
-                                                        <div key={item.id} className="flex items-center space-x-2">
-                                                            <Checkbox
-                                                                id={item.id}
-                                                                checked={checklist[item.id] || false}
-                                                                onCheckedChange={() => toggleCheck(item.id)}
-                                                            />
-                                                            <label htmlFor={item.id} className="text-sm font-medium leading-none cursor-pointer">
-                                                                {item.label}
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                </CardContent>
-                                            </Card>
+                                            {currentChecklist.length > 0 ? (
+                                                <Card>
+                                                    <CardContent className="p-4 space-y-3">
+                                                        {currentChecklist.map(item => (
+                                                            <div key={item.id} className="flex items-center space-x-2">
+                                                                <Checkbox
+                                                                    id={item.id}
+                                                                    checked={checklist[item.id] || false}
+                                                                    onCheckedChange={() => toggleCheck(item.id)}
+                                                                />
+                                                                <label htmlFor={item.id} className="text-sm font-medium leading-none cursor-pointer">
+                                                                    {item.label}
+                                                                </label>
+                                                            </div>
+                                                        ))}
+                                                    </CardContent>
+                                                </Card>
+                                            ) : (
+                                                <div className="p-4 border rounded bg-muted/20 text-sm text-muted-foreground">
+                                                    No specific checklist for this stage. Please review documents and notes before final approval.
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="space-y-2">
@@ -245,7 +255,8 @@ export function ApplicationReviewModal({ isOpen, onClose, application, onReview,
                                                     disabled={!allChecked}
                                                 >
                                                     <CheckCircle className="w-4 h-4 mr-2" />
-                                                    Approve & Pass to {isOpsStage ? 'Risk' : 'Activation'}
+                                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                                    {isFinalStage ? 'Confirm Final Approval' : `Approve & Pass to ${isOpsStage ? 'Risk' : 'Final Review'}`}
                                                 </Button>
                                             </div>
                                         ) : (

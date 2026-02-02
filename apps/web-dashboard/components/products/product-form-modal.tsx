@@ -33,7 +33,9 @@ export function ProductFormModal({ product, onClose }: ProductFormModalProps) {
         lockSupport: true,
         status: 'active' as 'active' | 'inactive',
         stockQuantity: '',
+        loanPartnerId: '',
     });
+    const [loanPartners, setLoanPartners] = useState<{ id: string; name: string }[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -51,8 +53,21 @@ export function ProductFormModal({ product, onClose }: ProductFormModalProps) {
                 lockSupport: product.lockSupport ?? true,
                 status: product.status || 'active',
                 stockQuantity: product.stockQuantity?.toString() || '',
+                loanPartnerId: product.loanPartnerId || '',
             });
         }
+
+        // Fetch Loan Partners
+        const fetchPartners = async () => {
+            try {
+                // Assuming explicit endpoint or public list
+                const res = await api.get('/loan-partners');
+                setLoanPartners(res.data);
+            } catch (e) {
+                console.error("Failed to fetch partners", e);
+            }
+        };
+        fetchPartners();
     }, [product]);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -230,6 +245,29 @@ export function ProductFormModal({ product, onClose }: ProductFormModalProps) {
                                 checked={formData.lockSupport}
                                 onCheckedChange={(checked) => setFormData({ ...formData, lockSupport: checked })}
                             />
+                        </div>
+
+
+                        <div>
+                            <Label htmlFor="loanPartner" className="mb-2 block">Financing Partner</Label>
+                            <Select
+                                value={formData.loanPartnerId}
+                                onValueChange={(value) => setFormData({ ...formData, loanPartnerId: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a Partner" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {loanPartners.map((partner) => (
+                                        <SelectItem key={partner.id} value={partner.id}>
+                                            {partner.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Which entity funds this product's loans?
+                            </p>
                         </div>
                     </div>
 
