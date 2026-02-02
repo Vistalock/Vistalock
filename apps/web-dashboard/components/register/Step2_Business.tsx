@@ -165,7 +165,7 @@ export default function Step2_Business({ formData, updateForm, onNext, onBack }:
                     <div className="space-y-2">
                         <FileUploader
                             label="CAC Certificate"
-                            file={formData.cacCertificateFile}
+                            fileUrl={formData.cacCertificateFile}
                             onFileChange={val => updateForm('cacCertificateFile', val)}
                             required
                         />
@@ -174,7 +174,7 @@ export default function Step2_Business({ formData, updateForm, onNext, onBack }:
                     <div className="space-y-2">
                         <FileUploader
                             label="CAC Status Report (CO2/CO7)"
-                            file={formData.cacStatusFile}
+                            fileUrl={formData.cacStatusFile}
                             onFileChange={val => updateForm('cacStatusFile', val)}
                             required
                         />
@@ -183,7 +183,7 @@ export default function Step2_Business({ formData, updateForm, onNext, onBack }:
                     <div className="space-y-2">
                         <FileUploader
                             label="Utility Bill (Max 3 months old)"
-                            file={formData.utilityBillFile}
+                            fileUrl={formData.utilityBillFile}
                             onFileChange={val => updateForm('utilityBillFile', val)}
                             required
                         />
@@ -192,7 +192,7 @@ export default function Step2_Business({ formData, updateForm, onNext, onBack }:
                     <div className="space-y-2">
                         <FileUploader
                             label="TIN Certificate (Optional)"
-                            file={formData.tinCertificateFile}
+                            fileUrl={formData.tinCertificateFile}
                             onFileChange={val => updateForm('tinCertificateFile', val)}
                         />
                     </div>

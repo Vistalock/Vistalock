@@ -12,8 +12,8 @@ export interface RegistrationData {
     directorBvn: string;
     directorDob: string;
     directorAddress: string;
-    directorIdFile: File | null;
-    directorPassportFile: File | null; // Passport Photo
+    directorIdFile: string | null; // URL from Vercel Blob
+    directorPassportFile: string | null; // URL from Vercel Blob
 
     // Step 2: Business
     businessName: string;
@@ -27,10 +27,10 @@ export interface RegistrationData {
     businessAddress: string;
     state: string;
     lga: string;
-    cacCertificateFile: File | null;
-    cacStatusFile: File | null;
-    tinCertificateFile: File | null;
-    utilityBillFile: File | null;
+    cacCertificateFile: string | null; // URL from Vercel Blob
+    cacStatusFile: string | null; // URL from Vercel Blob
+    tinCertificateFile: string | null; // URL from Vercel Blob
+    utilityBillFile: string | null; // URL from Vercel Blob
 
     // Step 3: Branches (Dynamic)
     branches: BranchData[];
@@ -58,7 +58,7 @@ export interface RegistrationData {
     bvnConsent: boolean;
     creditConsent: boolean;
     lockingPolicy: boolean;
-    agreementFile: File | null;
+    agreementFile: string | null; // URL from Vercel Blob
 }
 
 export interface BranchData {

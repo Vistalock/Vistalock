@@ -120,7 +120,7 @@ export default function Step6_Compliance({ formData, updateForm, onNext, onBack 
                     <div className="space-y-2">
                         <FileUploader
                             label="Signed VistaLock Merchant Agreement (PDF)"
-                            file={formData.agreementFile}
+                            fileUrl={formData.agreementFile}
                             onFileChange={val => updateForm('agreementFile', val)}
                             accept=".pdf"
                             required

@@ -186,7 +186,7 @@ export default function Step1_Principal({ formData, updateForm, onNext }: StepPr
                     <div className="space-y-2">
                         <FileUploader
                             label="Recent Passport Photo"
-                            file={formData.directorPassportFile}
+                            fileUrl={formData.directorPassportFile}
                             onFileChange={val => updateForm('directorPassportFile', val)}
                             required
                         />
@@ -195,7 +195,7 @@ export default function Step1_Principal({ formData, updateForm, onNext }: StepPr
                     <div className="space-y-2">
                         <FileUploader
                             label="Valid Govt ID (NIN/Passport/DL)"
-                            file={formData.directorIdFile}
+                            fileUrl={formData.directorIdFile}
                             onFileChange={val => updateForm('directorIdFile', val)}
                             required
                         />

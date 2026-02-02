@@ -27,6 +27,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/throttler": "^6.5.0",
     "@types/passport-jwt": "^4.0.1",
+    "@upstash/redis": "^1.36.1",
     "@vistalock/database": "file:../../packages/database",
     "bcryptjs": "^2.4.3",
     "class-transformer": "^0.5.1",

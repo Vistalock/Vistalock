@@ -81,35 +81,20 @@ export default function RegisterPage() {
         setSubmitError('');
 
         try {
-            console.log('📝 Processing files...');
-            // 1. Process Files
-            const fileFields = [
-                { key: 'directorIdFile', name: 'director_id' },
-                { key: 'directorPassportFile', name: 'director_passport' },
-                { key: 'cacCertificateFile', name: 'cac_cert' },
-                { key: 'cacStatusFile', name: 'cac_status' },
-                { key: 'utilityBillFile', name: 'utility_bill' },
-                { key: 'tinCertificateFile', name: 'tin_cert' },
-                { key: 'agreementFile', name: 'signed_agreement' },
-            ];
+            console.log('📝 Preparing payload (files already uploaded to Blob)...');
 
-            const documents: Record<string, any> = {};
+            // Files are already uploaded to Vercel Blob, just collect the URLs
+            const documents = {
+                director_id: formData.directorIdFile,
+                director_passport: formData.directorPassportFile,
+                cac_cert: formData.cacCertificateFile,
+                cac_status: formData.cacStatusFile,
+                utility_bill: formData.utilityBillFile,
+                tin_cert: formData.tinCertificateFile,
+                signed_agreement: formData.agreementFile,
+            };
 
-            for (const field of fileFields) {
-                const file = (formData as any)[field.key] as File | null;
-                if (file) {
-                    console.log(`📎 Processing ${field.name}: ${file.name}`);
-                    const content = await fileToBase64(file);
-                    documents[field.name] = {
-                        name: file.name,
-                        type: file.type,
-                        size: file.size,
-                        content: content
-                    };
-                }
-            }
-
-            console.log('✅ Files processed:', Object.keys(documents));
+            console.log('✅ Document URLs collected:', Object.keys(documents).filter(k => (documents as any)[k]));
 
             // 2. Construct Payload
             const payload = {
@@ -141,7 +126,6 @@ export default function RegisterPage() {
                     bvn: formData.directorBvn,
                     dob: formData.directorDob,
                     address: formData.directorAddress,
-                    // Files are in 'documents' map for now to simplify DTO
                 }],
 
                 branches: formData.branches,
@@ -165,7 +149,7 @@ export default function RegisterPage() {
                     dataProcessing: true
                 },
 
-                documents: documents,
+                documents: documents, // URLs instead of base64
 
                 // Legacy placeholders
                 signatories: [],
@@ -176,7 +160,7 @@ export default function RegisterPage() {
 
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
             console.log('🌐 Submitting to:', `${apiUrl}/auth/merchant/apply`);
-            console.log('📦 Payload size:', JSON.stringify(payload).length, 'bytes');
+            console.log('📦 Payload size:', JSON.stringify(payload).length, 'bytes (much smaller now!)');
 
             const res = await fetch(`${apiUrl}/auth/merchant/apply`, {
                 method: 'POST',
