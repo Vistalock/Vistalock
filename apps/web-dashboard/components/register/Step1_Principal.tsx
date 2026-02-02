@@ -227,7 +227,7 @@ export default function Step1_Principal({ formData, updateForm, onNext }: StepPr
                     {errors.directorAddress && <p className="text-xs text-red-500">{errors.directorAddress}</p>}
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 pt-2">
+                <div className="grid gap-6 sm:grid-cols-2 pt-2">
                     <div className="space-y-2">
                         <FileUploader
                             label="Recent Passport Photo"

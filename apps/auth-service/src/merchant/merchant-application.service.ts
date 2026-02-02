@@ -17,6 +17,71 @@ export class MerchantApplicationService {
     ) { }
 
     async submitApplication(data: any) {
+        // ===== DUPLICATE PREVENTION CHECKS =====
+        this.logger.log(`Checking for duplicates: ${data.email}`);
+
+        // 1. Check for duplicate email
+        const existingEmail = await this.prisma.merchantApplication.findFirst({
+            where: { email: data.email }
+        });
+        if (existingEmail) {
+            throw new Error('An application with this email already exists. Please use a different email or contact support.');
+        }
+
+        // 2. Check for duplicate phone
+        const existingPhone = await this.prisma.merchantApplication.findFirst({
+            where: { phone: data.phone }
+        });
+        if (existingPhone) {
+            throw new Error('An application with this phone number already exists.');
+        }
+
+        // 3. Check for duplicate CAC number (if provided)
+        if (data.cacNumber) {
+            const existingCAC = await this.prisma.merchantApplication.findFirst({
+                where: { cacNumber: data.cacNumber }
+            });
+            if (existingCAC) {
+                throw new Error('An application with this CAC number already exists.');
+            }
+        }
+
+        // 4. Check for duplicate NIN/BVN
+        if (data.directors && data.directors.length > 0) {
+            const director = data.directors[0];
+
+            if (director.nin) {
+                const existingNIN = await this.prisma.merchantApplication.findFirst({
+                    where: {
+                        directors: {
+                            path: '[0].nin',
+                            equals: director.nin
+                        }
+                    }
+                });
+                if (existingNIN) {
+                    throw new Error('An application with this NIN already exists.');
+                }
+            }
+
+            if (director.bvn) {
+                const existingBVN = await this.prisma.merchantApplication.findFirst({
+                    where: {
+                        directors: {
+                            path: '[0].bvn',
+                            equals: director.bvn
+                        }
+                    }
+                });
+                if (existingBVN) {
+                    throw new Error('An application with this BVN already exists.');
+                }
+            }
+        }
+
+        this.logger.log(`No duplicates found. Creating application for: ${data.email}`);
+
+        // ===== CREATE APPLICATION =====
         const application = await this.prisma.merchantApplication.create({
             data: {
                 // 1. Business Info
