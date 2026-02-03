@@ -79,12 +79,10 @@ async function main() {
                 role: Role.CUSTOMER,
                 customerProfile: {
                     create: {
-                        create: {
-                            phoneNumber: "08099998888",
-                            nin: "12345678901",
-                            firstName: "Customer",
-                            lastName: "One"
-                        }
+                        phoneNumber: "08099998888",
+                        nin: "12345678901",
+                        firstName: "Customer",
+                        lastName: "One"
                     }
                 },
             });
