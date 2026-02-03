@@ -178,8 +178,10 @@ async function main() {
     // 6. Create Merchant Applications (for testing approval flow)
     console.log('Creating Merchant Applications...');
     const appPromises = [
-        prisma.merchantApplication.create({
-            data: {
+        prisma.merchantApplication.upsert({
+            where: { email: 'pending@ventures.com' },
+            update: {},
+            create: {
                 businessName: 'Pending Ventures Ltd',
                 email: 'pending@ventures.com',
                 phone: '08012345678',
@@ -189,8 +191,10 @@ async function main() {
                 status: 'PENDING'
             }
         }),
-        prisma.merchantApplication.create({
-            data: {
+        prisma.merchantApplication.upsert({
+            where: { email: 'ops@stores.com' },
+            update: {},
+            create: {
                 businessName: 'Ops Reviewed Stores',
                 email: 'ops@stores.com',
                 phone: '08087654321',
@@ -200,8 +204,10 @@ async function main() {
                 status: 'OPS_REVIEWED'
             }
         }),
-        prisma.merchantApplication.create({
-            data: {
+        prisma.merchantApplication.upsert({
+            where: { email: 'risk@ent.com' },
+            update: {},
+            create: {
                 businessName: 'Risk Reviewed Enterprises',
                 email: 'risk@ent.com',
                 phone: '08099887766',
