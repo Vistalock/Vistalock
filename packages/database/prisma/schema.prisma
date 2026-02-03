@@ -169,15 +169,15 @@ model MerchantApplication {
   businessName        String // Legal Name
   tradingName         String?
   businessType        String? // Sole Prop, LLC, etc.
-  cacNumber           String?
+  cacNumber           String? @unique // NEW: Unique constraint
   dateOfIncorporation DateTime?
   natureOfBusiness    String?
   website             String?
 
   // 2. Contact & Address
   contactName      String
-  email            String
-  phone            String
+  email            String @unique // NEW: Unique constraint
+  phone            String @unique // NEW: Unique constraint
   businessAddress  String // Registered
   operatingAddress String?
 

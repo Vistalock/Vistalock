@@ -27,6 +27,7 @@ export default function RegisterPage() {
     const router = useRouter();
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false); // NEW: Prevent double-click
     const [submitError, setSubmitError] = useState('');
 
     const [formData, setFormData] = useState<RegistrationData>({
@@ -78,7 +79,14 @@ export default function RegisterPage() {
     };
 
     const handleSubmit = async () => {
+        // Prevent double-click
+        if (isSubmitting) {
+            console.log('⚠️ Submission already in progress, ignoring duplicate click');
+            return;
+        }
+
         console.log('🚀 Submit button clicked!');
+        setIsSubmitting(true);
         setLoading(true);
         setSubmitError('');
 
@@ -164,12 +172,20 @@ export default function RegisterPage() {
             };
 
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+            // Generate idempotency key to prevent duplicate submissions
+            const idempotencyKey = `${formData.email}-${Date.now()}`;
+
             console.log('🌐 Submitting to:', `${apiUrl}/auth/merchant/apply`);
+            console.log('🔑 Idempotency Key:', idempotencyKey);
             console.log('📦 Payload size:', JSON.stringify(payload).length, 'bytes (much smaller now!)');
 
             const res = await fetch(`${apiUrl}/auth/merchant/apply`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Idempotency-Key': idempotencyKey
+                },
                 body: JSON.stringify(payload),
             });
 
@@ -195,6 +211,7 @@ export default function RegisterPage() {
             });
             setSubmitError(err.message || "An error occurred during submission. Please check the console for details.");
             setLoading(false);
+            setIsSubmitting(false); // Reset on error
         }
     };
 

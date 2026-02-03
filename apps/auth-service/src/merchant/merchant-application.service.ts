@@ -10,13 +10,50 @@ import * as bcrypt from 'bcryptjs';
 export class MerchantApplicationService {
     private readonly logger = new Logger(MerchantApplicationService.name);
     private prisma = new PrismaClient();
+    private idempotencyCache = new Map<string, any>(); // Cache for idempotency
 
     constructor(
         private emailService: EmailService,
         private creditAdapter: CreditServiceAdapter
     ) { }
 
-    async submitApplication(data: any) {
+    /**
+     * Check for duplicate email, phone, or business name
+     * Used by frontend before submission
+     */
+    async checkDuplicates(email: string, phone: string, businessName: string) {
+        const [emailExists, phoneExists, businessExists] = await Promise.all([
+            this.prisma.merchantApplication.findFirst({
+                where: { email, deletedAt: null },
+                select: { id: true }
+            }),
+            this.prisma.merchantApplication.findFirst({
+                where: { phone, deletedAt: null },
+                select: { id: true }
+            }),
+            this.prisma.merchantApplication.findFirst({
+                where: {
+                    businessName: { equals: businessName, mode: 'insensitive' },
+                    deletedAt: null
+                },
+                select: { id: true }
+            })
+        ]);
+
+        return {
+            emailExists: !!emailExists,
+            phoneExists: !!phoneExists,
+            businessExists: !!businessExists,
+            canProceed: !emailExists && !phoneExists && !businessExists
+        };
+    }
+
+    async submitApplication(data: any, idempotencyKey?: string) {
+        // Check idempotency cache
+        if (idempotencyKey && this.idempotencyCache.has(idempotencyKey)) {
+            this.logger.log(`⚠️ Duplicate request detected with idempotency key: ${idempotencyKey}`);
+            return this.idempotencyCache.get(idempotencyKey);
+        }
         // ===== DUPLICATE PREVENTION CHECKS =====
         this.logger.log(`Checking for duplicates: ${data.email}`);
 
@@ -148,6 +185,13 @@ export class MerchantApplicationService {
         } catch (error) {
             console.error('Failed to send confirmation email:', error);
             // Don't fail the application submission if email fails
+        }
+
+        // Cache result for idempotency (5 minutes)
+        if (idempotencyKey) {
+            this.idempotencyCache.set(idempotencyKey, application);
+            setTimeout(() => this.idempotencyCache.delete(idempotencyKey), 300000);
+            this.logger.log(`✅ Cached application with idempotency key: ${idempotencyKey}`);
         }
 
         return application;

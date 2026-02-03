@@ -8,11 +8,21 @@ import { CreateMerchantApplicationDto } from './dto/create-merchant-application.
 export class MerchantApplicationController {
     constructor(private appService: MerchantApplicationService) { }
 
+    // PUBLIC: Check for duplicates before submission
+    @Post('auth/merchant/check-duplicate')
+    async checkDuplicate(@Body() body: { email: string; phone: string; businessName: string }) {
+        return this.appService.checkDuplicates(body.email, body.phone, body.businessName);
+    }
+
     // PUBLIC: Submit Application (Strictly Validated)
     @Post('auth/merchant/apply')
     @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
-    async submitApplication(@Body() body: CreateMerchantApplicationDto) {
-        return this.appService.submitApplication(body);
+    async submitApplication(
+        @Body() body: CreateMerchantApplicationDto,
+        @Request() req: any
+    ) {
+        const idempotencyKey = req.headers['x-idempotency-key'];
+        return this.appService.submitApplication(body, idempotencyKey);
     }
 
     // PUBLIC: Activate Merchant Account
