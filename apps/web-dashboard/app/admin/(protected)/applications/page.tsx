@@ -285,20 +285,20 @@ export default function ApplicationsPage() {
 
                     {/* Responsive Table Wrapper */}
                     <div className="rounded-md border overflow-x-auto">
-                        <table className="w-full text-sm text-left min-w-[800px]">
+                        <table className="w-full text-sm text-left">
                             <thead className="bg-muted/50 text-muted-foreground">
                                 <tr>
-                                    <th className="px-4 py-3 w-12">
+                                    <th className="px-2 py-3 w-10">
                                         <Checkbox
                                             checked={selectedIds.length === applications.length && applications.length > 0}
                                             onCheckedChange={toggleAll}
                                         />
                                     </th>
-                                    <th className="px-4 py-3 font-medium">Business</th>
-                                    <th className="px-4 py-3 font-medium">Contact</th>
-                                    <th className="px-4 py-3 font-medium">Volume</th>
-                                    <th className="px-4 py-3 font-medium">Status</th>
-                                    <th className="px-4 py-3 font-medium text-right">Actions</th>
+                                    <th className="px-3 py-3 font-medium min-w-[180px]">Business</th>
+                                    <th className="px-3 py-3 font-medium min-w-[140px]">Contact</th>
+                                    <th className="px-3 py-3 font-medium min-w-[80px]">Volume</th>
+                                    <th className="px-3 py-3 font-medium min-w-[120px]">Status</th>
+                                    <th className="px-3 py-3 font-medium text-right min-w-[280px]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -309,22 +309,22 @@ export default function ApplicationsPage() {
                                 )}
                                 {applications.map((app) => (
                                     <tr key={app.id} className="border-t hover:bg-muted/50 transition-colors">
-                                        <td className="px-4 py-3">
+                                        <td className="px-2 py-3">
                                             <Checkbox
                                                 checked={selectedIds.includes(app.id)}
                                                 onCheckedChange={() => toggleSelection(app.id)}
                                             />
                                         </td>
-                                        <td className="px-4 py-3">
+                                        <td className="px-3 py-3">
                                             <div className="font-medium">{app.businessName}</div>
                                             <div className="text-xs text-muted-foreground">{app.email}</div>
                                         </td>
-                                        <td className="px-4 py-3">
+                                        <td className="px-3 py-3">
                                             <div>{app.contactName}</div>
                                             <div className="text-xs text-muted-foreground">{app.phone}</div>
                                         </td>
-                                        <td className="px-4 py-3">{app.monthlyVolume || 'N/A'}</td>
-                                        <td className="px-4 py-3">
+                                        <td className="px-3 py-3">{app.monthlyVolume || 'N/A'}</td>
+                                        <td className="px-3 py-3">
                                             <div className="flex flex-col gap-1">
                                                 <Badge variant={app.status === 'PENDING' ? 'outline' : app.status === 'APPROVED' ? 'default' : 'destructive'}>
                                                     {app.status}
@@ -345,8 +345,8 @@ export default function ApplicationsPage() {
                                                 })()}
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3 text-right">
-                                            <div className="flex justify-end gap-2 items-center">
+                                        <td className="px-3 py-3 text-right">
+                                            <div className="flex justify-end gap-1.5 items-center flex-wrap">
                                                 <Button size="icon" variant="ghost" title="Review Details" onClick={() => openReview(app)}>
                                                     <Eye className="h-4 w-4 text-blue-600" />
                                                 </Button>
