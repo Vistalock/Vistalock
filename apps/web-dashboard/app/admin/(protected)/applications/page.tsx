@@ -23,15 +23,18 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AlertCircle, CheckCircle, XCircle, Eye, MoreVertical, Archive, Trash2 } from 'lucide-react';
+import { AlertCircle, CheckCircle, XCircle, Eye, MoreVertical, Archive, Trash2, Trash } from 'lucide-react';
 import { SudoModal } from '@/components/ui/sudo-modal';
 import { CreateMerchantModal } from '@/components/ui/create-merchant-modal';
 import { ApplicationReviewModal } from '@/components/admin/ApplicationReviewModal';
 import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function ApplicationsPage() {
     const [applications, setApplications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedIds, setSelectedIds] = useState<string[]>([]); // NEW: Track selected applications
+    const [bulkDeleteDialog, setBulkDeleteDialog] = useState(false); // NEW: Bulk delete confirmation
 
     // Modals state
     const [reviewModal, setReviewModal] = useState<{ isOpen: boolean, app: any | null }>({ isOpen: false, app: null });
@@ -105,6 +108,54 @@ export default function ApplicationsPage() {
             });
         } finally {
             setDeleteDialog({ open: false, type: null, app: null });
+        }
+    };
+
+    // NEW: Bulk delete handler
+    const handleBulkDelete = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+            // Delete all selected applications
+            await Promise.all(
+                selectedIds.map(id =>
+                    axios.delete(`${apiUrl}/admin/merchant-applications/${id}`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    })
+                )
+            );
+
+            toast({
+                title: "Success",
+                description: `${selectedIds.length} application(s) deleted`
+            });
+            setSelectedIds([]);
+            fetchApplications();
+        } catch (error: any) {
+            toast({
+                title: "Error",
+                description: error.response?.data?.message || "Failed to delete applications",
+                variant: "destructive"
+            });
+        } finally {
+            setBulkDeleteDialog(false);
+        }
+    };
+
+    // NEW: Toggle selection
+    const toggleSelection = (id: string) => {
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
+    };
+
+    // NEW: Toggle all
+    const toggleAll = () => {
+        if (selectedIds.length === applications.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(applications.map(app => app.id));
         }
     };
 
@@ -214,10 +265,35 @@ export default function ApplicationsPage() {
                     <CardDescription>Review and approve incoming merchant requests.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="rounded-md border">
-                        <table className="w-full text-sm text-left">
+                    {/* Bulk Actions Bar */}
+                    {selectedIds.length > 0 && (
+                        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+                            <span className="text-sm font-medium text-blue-900">
+                                {selectedIds.length} application(s) selected
+                            </span>
+                            <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => setBulkDeleteDialog(true)}
+                                className="gap-2"
+                            >
+                                <Trash className="h-4 w-4" />
+                                Delete Selected
+                            </Button>
+                        </div>
+                    )}
+
+                    {/* Responsive Table Wrapper */}
+                    <div className="rounded-md border overflow-x-auto">
+                        <table className="w-full text-sm text-left min-w-[800px]">
                             <thead className="bg-muted/50 text-muted-foreground">
                                 <tr>
+                                    <th className="px-4 py-3 w-12">
+                                        <Checkbox
+                                            checked={selectedIds.length === applications.length && applications.length > 0}
+                                            onCheckedChange={toggleAll}
+                                        />
+                                    </th>
                                     <th className="px-4 py-3 font-medium">Business</th>
                                     <th className="px-4 py-3 font-medium">Contact</th>
                                     <th className="px-4 py-3 font-medium">Volume</th>
@@ -228,11 +304,17 @@ export default function ApplicationsPage() {
                             <tbody>
                                 {applications.length === 0 && (
                                     <tr>
-                                        <td colSpan={5} className="text-center py-8 text-muted-foreground">No pending applications.</td>
+                                        <td colSpan={6} className="text-center py-8 text-muted-foreground">No pending applications.</td>
                                     </tr>
                                 )}
                                 {applications.map((app) => (
                                     <tr key={app.id} className="border-t hover:bg-muted/50 transition-colors">
+                                        <td className="px-4 py-3">
+                                            <Checkbox
+                                                checked={selectedIds.includes(app.id)}
+                                                onCheckedChange={() => toggleSelection(app.id)}
+                                            />
+                                        </td>
                                         <td className="px-4 py-3">
                                             <div className="font-medium">{app.businessName}</div>
                                             <div className="text-xs text-muted-foreground">{app.email}</div>
