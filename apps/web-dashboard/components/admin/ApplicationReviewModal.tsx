@@ -144,22 +144,32 @@ export function ApplicationReviewModal({ isOpen, onClose, application, onReview,
                                             <div>
                                                 <span className="text-muted-foreground block text-xs">Categories</span>
                                                 <div className="flex flex-wrap gap-1 mt-1">
-                                                    {(application.productDeclaration?.categories || []).map((c: string) => (
-                                                        <Badge key={c} variant="outline" className="text-xs">{c}</Badge>
-                                                    ))}
+                                                    {(application.productDeclaration?.categories?.length > 0) ? (
+                                                        application.productDeclaration.categories.map((c: string) => (
+                                                            <Badge key={c} variant="outline" className="text-xs">{c}</Badge>
+                                                        ))
+                                                    ) : <span className="text-muted-foreground">-</span>}
                                                 </div>
                                             </div>
                                             <div>
                                                 <span className="text-muted-foreground block text-xs">Brands</span>
-                                                <p className="font-medium">{application.productDeclaration?.brands?.join(', ')}</p>
+                                                <p className="font-medium">
+                                                    {(application.productDeclaration?.brands?.length > 0)
+                                                        ? application.productDeclaration.brands.join(', ')
+                                                        : '-'}
+                                                </p>
                                             </div>
                                             <div>
                                                 <span className="text-muted-foreground block text-xs">Price Range</span>
-                                                <p className="font-medium">₦{application.productDeclaration?.minPrice} - ₦{application.productDeclaration?.maxPrice}</p>
+                                                <p className="font-medium">
+                                                    {application.productDeclaration?.minPrice && application.productDeclaration?.maxPrice
+                                                        ? `₦${Number(application.productDeclaration.minPrice).toLocaleString()} - ₦${Number(application.productDeclaration.maxPrice).toLocaleString()}`
+                                                        : '-'}
+                                                </p>
                                             </div>
                                             <div>
                                                 <span className="text-muted-foreground block text-xs">Volume</span>
-                                                <p className="font-medium">{application.productDeclaration?.monthlyVolume}</p>
+                                                <p className="font-medium">{application.productDeclaration?.monthlyVolume || '-'}</p>
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -168,18 +178,25 @@ export function ApplicationReviewModal({ isOpen, onClose, application, onReview,
 
                             <TabsContent value="documents" className="mt-0">
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                    {Object.entries(application.documents || {}).map(([key, doc]: [string, any]) => (
-                                        <Card key={key} className="cursor-pointer hover:border-primary transition-colors" onClick={() => viewDocument(doc)}>
-                                            <CardContent className="p-4 flex flex-col items-center text-center gap-2">
-                                                <FileText className="h-8 w-8 text-primary/60" />
-                                                <div className="text-sm font-medium capitalize">{key.replace(/_/g, ' ')}</div>
-                                                <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                                    {doc.type?.split('/')[1]?.toUpperCase()} • {(doc.size / 1024 / 1024).toFixed(2)} MB
-                                                    <ExternalLink className="h-3 w-3 ml-1" />
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
+                                    {Object.entries(application.documents || {}).map(([key, doc]: [string, any]) => {
+                                        const isString = typeof doc === 'string';
+                                        const url = isString ? doc : doc?.url || doc?.content;
+                                        const type = isString ? 'File' : (doc?.type?.split('/')[1]?.toUpperCase() || 'FILE');
+                                        const size = isString ? null : (doc?.size ? (doc.size / 1024 / 1024).toFixed(2) + ' MB' : null);
+
+                                        return (
+                                            <Card key={key} className="cursor-pointer hover:border-primary transition-colors" onClick={() => viewDocument(isString ? { content: doc } : doc)}>
+                                                <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                                                    <FileText className="h-8 w-8 text-primary/60" />
+                                                    <div className="text-sm font-medium capitalize">{key.replace(/_/g, ' ')}</div>
+                                                    <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                                        {type} {size && `• ${size}`}
+                                                        <ExternalLink className="h-3 w-3 ml-1" />
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        );
+                                    })}
                                 </div>
                             </TabsContent>
 
