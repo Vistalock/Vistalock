@@ -20,33 +20,56 @@ export class MerchantApplicationService {
         // ===== DUPLICATE PREVENTION CHECKS =====
         this.logger.log(`Checking for duplicates: ${data.email}`);
 
-        // 1. Check for duplicate email
+        // 1. Check for duplicate email (excluding soft-deleted)
         const existingEmail = await this.prisma.merchantApplication.findFirst({
-            where: { email: data.email }
+            where: {
+                email: data.email,
+                deletedAt: null // Exclude soft-deleted
+            }
         });
         if (existingEmail) {
             throw new Error('An application with this email already exists. Please use a different email or contact support.');
         }
 
-        // 2. Check for duplicate phone
+        // 2. Check for duplicate phone (excluding soft-deleted)
         const existingPhone = await this.prisma.merchantApplication.findFirst({
-            where: { phone: data.phone }
+            where: {
+                phone: data.phone,
+                deletedAt: null
+            }
         });
         if (existingPhone) {
             throw new Error('An application with this phone number already exists.');
         }
 
-        // 3. Check for duplicate CAC number (if provided)
+        // 3. Check for duplicate business name (excluding soft-deleted)
+        const existingBusiness = await this.prisma.merchantApplication.findFirst({
+            where: {
+                businessName: {
+                    equals: data.businessName,
+                    mode: 'insensitive' // Case-insensitive match
+                },
+                deletedAt: null
+            }
+        });
+        if (existingBusiness) {
+            throw new Error('An application with this business name already exists. Please use a unique business name.');
+        }
+
+        // 4. Check for duplicate CAC number (if provided, excluding soft-deleted)
         if (data.cacNumber) {
             const existingCAC = await this.prisma.merchantApplication.findFirst({
-                where: { cacNumber: data.cacNumber }
+                where: {
+                    cacNumber: data.cacNumber,
+                    deletedAt: null
+                }
             });
             if (existingCAC) {
                 throw new Error('An application with this CAC number already exists.');
             }
         }
 
-        // 4. Check for duplicate NIN/BVN
+        // 5. Check for duplicate NIN/BVN
         if (data.directors && data.directors.length > 0) {
             const director = data.directors[0];
 
@@ -56,7 +79,8 @@ export class MerchantApplicationService {
                         directors: {
                             path: ['0', 'nin'],
                             equals: director.nin
-                        }
+                        },
+                        deletedAt: null
                     }
                 });
                 if (existingNIN) {
@@ -70,7 +94,8 @@ export class MerchantApplicationService {
                         directors: {
                             path: ['0', 'bvn'],
                             equals: director.bvn
-                        }
+                        },
+                        deletedAt: null
                     }
                 });
                 if (existingBVN) {
