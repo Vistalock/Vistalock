@@ -28,8 +28,18 @@ export default function Step1_Principal({ formData, updateForm, onNext }: StepPr
         // Principal
         if (!formData.directorName) newErrors.directorName = "Full Name is required";
         if (!formData.directorPhone || formData.directorPhone.length !== 11) newErrors.directorPhone = "Phone must be 11 digits";
-        if (!formData.directorNin || formData.directorNin.length !== 11) newErrors.directorNin = "NIN must be 11 digits";
-        if (!formData.directorBvn || formData.directorBvn.length !== 11) newErrors.directorBvn = "BVN must be 11 digits";
+
+        // Validate ONLY the selected verification type
+        if (formData.verificationType === 'NIN') {
+            if (!formData.directorNin || formData.directorNin.length !== 11) {
+                newErrors.directorNin = "NIN must be 11 digits";
+            }
+        } else if (formData.verificationType === 'BVN') {
+            if (!formData.directorBvn || formData.directorBvn.length !== 11) {
+                newErrors.directorBvn = "BVN must be 11 digits";
+            }
+        }
+
         if (!formData.directorDob) newErrors.directorDob = "Date of Birth is required";
         if (!formData.directorAddress) newErrors.directorAddress = "Residential Address is required";
 
@@ -227,7 +237,7 @@ export default function Step1_Principal({ formData, updateForm, onNext }: StepPr
                     {errors.directorAddress && <p className="text-xs text-red-500">{errors.directorAddress}</p>}
                 </div>
 
-                <div className="grid gap-6 sm:grid-cols-2 pt-2">
+                <div className="grid gap-8 sm:grid-cols-2 pt-2">
                     <div className="space-y-2">
                         <FileUploader
                             label="Recent Passport Photo"
