@@ -85,7 +85,8 @@ async function main() {
                         lastName: "One"
                     }
                 },
-            });
+            }
+        });
         console.log(`Created Customer: ${customer.email}`);
     } catch (e) {
         console.log('Customer already exists, fetching...');
