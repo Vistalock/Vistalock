@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StepProps } from './types';
 import { FileUploader } from './FileUploader';
+import { NIGERIAN_STATES, getLGAsForState } from '@/lib/nigeria-states';
 
 export default function Step2_Business({ formData, updateForm, onNext, onBack }: StepProps) {
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -141,21 +142,45 @@ export default function Step2_Business({ formData, updateForm, onNext, onBack }:
             <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                     <Label>State</Label>
-                    <Input
+                    <Select
                         value={formData.state}
-                        onChange={e => updateForm('state', e.target.value)}
-                        placeholder="e.g. Lagos"
-                        className={errors.state ? "border-red-500" : ""}
-                    />
+                        onValueChange={(val) => {
+                            updateForm('state', val);
+                            updateForm('lga', ''); // Reset LGA when state changes
+                        }}
+                    >
+                        <SelectTrigger className={errors.state ? "border-red-500" : ""}>
+                            <SelectValue placeholder="Select State" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {NIGERIAN_STATES.map(state => (
+                                <SelectItem key={state.value} value={state.value}>
+                                    {state.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    {errors.state && <p className="text-xs text-red-500">{errors.state}</p>}
                 </div>
                 <div className="space-y-2">
                     <Label>L.G.A.</Label>
-                    <Input
+                    <Select
                         value={formData.lga}
-                        onChange={e => updateForm('lga', e.target.value)}
-                        placeholder="e.g. Ikeja"
-                        className={errors.lga ? "border-red-500" : ""}
-                    />
+                        onValueChange={(val) => updateForm('lga', val)}
+                        disabled={!formData.state}
+                    >
+                        <SelectTrigger className={errors.lga ? "border-red-500" : ""}>
+                            <SelectValue placeholder={formData.state ? "Select LGA" : "Select State First"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {getLGAsForState(formData.state).map(lga => (
+                                <SelectItem key={lga} value={lga}>
+                                    {lga}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    {errors.lga && <p className="text-xs text-red-500">{errors.lga}</p>}
                 </div>
             </div>
 
