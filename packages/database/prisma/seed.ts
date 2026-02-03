@@ -1,4 +1,4 @@
-import { PrismaClient, Role, DeviceStatus, LoanStatus, PaymentStatus, BusinessType, SubscriptionPlan } from '@prisma/client';
+import { PrismaClient, Role, DeviceStatus, LoanStatus, PaymentStatus, BusinessType, SubscriptionPlan, ApplicationStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -79,14 +79,15 @@ async function main() {
                 role: Role.CUSTOMER,
                 customerProfile: {
                     create: {
-                        phoneNumber: "08099998888",
-                        nin: "12345678901",
-                        firstName: "Customer",
-                        lastName: "One"
+                        create: {
+                            phoneNumber: "08099998888",
+                            nin: "12345678901",
+                            firstName: "Customer",
+                            lastName: "One"
+                        }
                     }
-                }
-            },
-        });
+                },
+            });
         console.log(`Created Customer: ${customer.email}`);
     } catch (e) {
         console.log('Customer already exists, fetching...');
@@ -176,52 +177,56 @@ async function main() {
     }
 
     // 6. Create Merchant Applications (for testing approval flow)
-    console.log('Creating Merchant Applications...');
-    const appPromises = [
-        prisma.merchantApplication.upsert({
-            where: { email: 'pending@ventures.com' },
-            update: {},
-            create: {
-                businessName: 'Pending Ventures Ltd',
-                email: 'pending@ventures.com',
-                phone: '08012345678',
-                contactName: 'John Doe',
-                businessAddress: '123 Lagos Way',
-                operations: { monthlyVolume: '500-1000' },
-                status: 'PENDING'
-            }
-        }),
-        prisma.merchantApplication.upsert({
-            where: { email: 'ops@stores.com' },
-            update: {},
-            create: {
-                businessName: 'Ops Reviewed Stores',
-                email: 'ops@stores.com',
-                phone: '08087654321',
-                contactName: 'Jane Smith',
-                businessAddress: '456 Abuja Crescent',
-                operations: { monthlyVolume: '100-500' },
-                status: 'OPS_REVIEWED'
-            }
-        }),
-        prisma.merchantApplication.upsert({
-            where: { email: 'risk@ent.com' },
-            update: {},
-            create: {
-                businessName: 'Risk Reviewed Enterprises',
-                email: 'risk@ent.com',
-                phone: '08099887766',
-                contactName: 'Bob Risk',
-                businessAddress: '789 Kano Street',
-                operations: { monthlyVolume: '1000+' },
-                status: 'RISK_REVIEWED'
-            }
-        })
+    console.log('Creating Merchant Applications (SAFE MODE)...');
+
+    // Use explicit try-catch to prevent deployment failures
+    const appsToSeed = [
+        {
+            businessName: 'Pending Ventures Ltd',
+            email: 'pending@ventures.com',
+            phone: '08012345678',
+            contactName: 'John Doe',
+            businessAddress: '123 Lagos Way',
+            operations: { monthlyVolume: '500-1000' },
+            status: ApplicationStatus.PENDING
+        },
+        {
+            businessName: 'Ops Reviewed Stores',
+            email: 'ops@stores.com',
+            phone: '08087654321',
+            contactName: 'Jane Smith',
+            businessAddress: '456 Abuja Crescent',
+            operations: { monthlyVolume: '100-500' },
+            status: ApplicationStatus.OPS_REVIEWED
+        },
+        {
+            businessName: 'Risk Reviewed Enterprises',
+            email: 'risk@ent.com',
+            phone: '08099887766',
+            contactName: 'Bob Risk',
+            businessAddress: '789 Kano Street',
+            operations: { monthlyVolume: '1000+' },
+            status: ApplicationStatus.RISK_REVIEWED
+        }
     ];
 
-    await Promise.all(appPromises);
-    console.log('Seeded 3 Merchant Applications.');
+    for (const app of appsToSeed) {
+        try {
+            await prisma.merchantApplication.create({
+                data: app
+            });
+            console.log(`✅ Seeded: ${app.businessName}`);
+        } catch (error: any) {
+            // Ignore unique constraint violation (P2002)
+            if (error.code === 'P2002') {
+                console.log(`ℹ️  Skipping existing app: ${app.businessName}`);
+            } else {
+                console.warn(`⚠️ Failed to seed ${app.businessName}:`, error.message);
+            }
+        }
+    }
 
+    console.log('Finished Merchant Applications seeding.');
     console.log('✅ Seeding complete.');
 }
 
