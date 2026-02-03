@@ -5,6 +5,7 @@ import { EmailService } from '../email/email.service';
 import { CreditServiceAdapter } from '../integration/credit-service.adapter';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcryptjs';
+import { ExternalVerificationService } from '../integration/external-verification.service';
 
 @Injectable()
 export class MerchantApplicationService {
@@ -14,7 +15,8 @@ export class MerchantApplicationService {
 
     constructor(
         private emailService: EmailService,
-        private creditAdapter: CreditServiceAdapter
+        private creditAdapter: CreditServiceAdapter,
+        private externalVerification: ExternalVerificationService
     ) { }
 
     /**
@@ -141,7 +143,31 @@ export class MerchantApplicationService {
             }
         }
 
-        this.logger.log(`No duplicates found. Creating application for: ${data.email}`);
+        // ===== AUTOMATED PRE-SCREENING (3rd Party Check) =====
+        this.logger.log(`Running automated pre-screening for: ${data.email}`);
+
+        // A. CAC Validation
+        if (data.cacNumber) {
+            const cacResult = await this.externalVerification.verifyCAC(data.cacNumber);
+            if (!cacResult.isValid) {
+                throw new Error(`CAC Verification Failed: ${cacResult.reason || 'Invalid RC Number'}`);
+            }
+            this.logger.log(`✅ CAC Verified: ${cacResult.companyName}`);
+        }
+
+        // B. Bank Account Validation
+        if (data.bankDetails?.accountNumber && data.bankDetails?.bankName) {
+            const bankResult = await this.externalVerification.verifyBankAccount(
+                data.bankDetails.accountNumber,
+                data.bankDetails.bankName
+            );
+            if (!bankResult.isValid) {
+                throw new Error(`Bank Account Verification Failed: ${bankResult.reason || 'Invalid details'}`);
+            }
+            this.logger.log(`✅ Bank Account Verified: ${bankResult.accountName}`);
+        }
+
+        this.logger.log(`No duplicates or validation errors found. Creating application for: ${data.email}`);
 
         // ===== CREATE APPLICATION =====
         const application = await this.prisma.merchantApplication.create({
