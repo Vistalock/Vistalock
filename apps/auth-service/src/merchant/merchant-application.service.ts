@@ -202,14 +202,17 @@ export class MerchantApplicationService {
             }
         });
 
+
         // Send confirmation email
         try {
             await this.emailService.sendApplicationConfirmation(
                 data.email,
                 data.businessName
             );
+            // NEW: Notify Ops Admin
+            await this.emailService.sendOpsAdminNotification(data.businessName);
         } catch (error) {
-            console.error('Failed to send confirmation email:', error);
+            console.error('Failed to send emails:', error);
             // Don't fail the application submission if email fails
         }
 
@@ -363,7 +366,7 @@ export class MerchantApplicationService {
             ...reviewData
         };
 
-        return this.prisma.merchantApplication.update({
+        const updatedApp = await this.prisma.merchantApplication.update({
             where: { id },
             data: {
                 status: ApplicationStatus.OPS_REVIEWED,
@@ -372,6 +375,15 @@ export class MerchantApplicationService {
                 reviews: [...currentReviews, newReview]
             }
         });
+
+        // NEW: Notify Risk Admin
+        try {
+            await this.emailService.sendRiskAdminNotification(app.businessName);
+        } catch (e) {
+            this.logger.error(`Failed to notify Risk Admin: ${e.message}`);
+        }
+
+        return updatedApp;
     }
 
     /**
@@ -403,7 +415,7 @@ export class MerchantApplicationService {
         if (creditResult.decision === 'APPROVED' && creditResult.score >= 700) {
             // Auto-approve to RISK_REVIEWED
             this.logger.log(`Auto-approving risk for ${app.businessName} (Score: ${creditResult.score})`);
-            return this.prisma.merchantApplication.update({
+            const updatedApp = await this.prisma.merchantApplication.update({
                 where: { id },
                 data: {
                     status: ApplicationStatus.RISK_REVIEWED,
@@ -411,6 +423,13 @@ export class MerchantApplicationService {
                     reviews: [...currentReviews, autoReview]
                 }
             });
+            // NEW: Notify Super Admin (Auto-Approved)
+            try {
+                await this.emailService.sendSuperAdminNotification(app.businessName);
+            } catch (e) {
+                this.logger.error(`Failed to notify Super Admin: ${e.message}`);
+            }
+            return updatedApp;
         } else if (creditResult.decision === 'REJECTED') {
             // Auto-reject
             this.logger.warn(`Auto-rejecting ${app.businessName} (Score: ${creditResult.score})`);
@@ -418,6 +437,14 @@ export class MerchantApplicationService {
         } else {
             // Manual review required
             this.logger.log(`Flagging ${app.businessName} for manual risk review`);
+
+            // NEW: Notify Risk Admin (Manual Review Needed)
+            try {
+                await this.emailService.sendRiskAdminNotification(app.businessName);
+            } catch (e) {
+                this.logger.error(`Failed to notify Risk Admin: ${e.message}`);
+            }
+
             return this.prisma.merchantApplication.update({
                 where: { id },
                 data: {
@@ -441,7 +468,7 @@ export class MerchantApplicationService {
             ...reviewData
         };
 
-        return this.prisma.merchantApplication.update({
+        const updatedApp = await this.prisma.merchantApplication.update({
             where: { id },
             data: {
                 status: ApplicationStatus.RISK_REVIEWED,
@@ -450,6 +477,15 @@ export class MerchantApplicationService {
                 reviews: [...currentReviews, newReview]
             }
         });
+
+        // NEW: Notify Super Admin (Manual Risk Review Complete)
+        try {
+            await this.emailService.sendSuperAdminNotification(app.businessName);
+        } catch (e) {
+            this.logger.error(`Failed to notify Super Admin: ${e.message}`);
+        }
+
+        return updatedApp;
     }
 
 

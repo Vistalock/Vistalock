@@ -182,4 +182,66 @@ export class EmailService {
             throw error;
         }
     }
+
+    async sendOpsAdminNotification(businessName: string) {
+        const subject = `[ACTION REQUIRED] New Merchant Application: ${businessName}`;
+        const html = `
+            <p>New merchant application received from <strong>${businessName}</strong>.</p>
+            <p>Please log in to the Admin Dashboard to perform the Operations Review.</p>
+        `;
+        // In a real system, this would go to ops-admin@vistalock.com
+        await this.sendAdminEmail(subject, html);
+    }
+
+    async sendRiskAdminNotification(businessName: string) {
+        const subject = `[ACTION REQUIRED] Ops Review Complete: ${businessName}`;
+        const html = `
+            <p>Operations review completed for <strong>${businessName}</strong>.</p>
+            <p>Please log in to perform the Risk Assessment.</p>
+        `;
+        // In a real system, this would go to risk-admin@vistalock.com
+        await this.sendAdminEmail(subject, html);
+    }
+
+    async sendSuperAdminNotification(businessName: string) {
+        const subject = `[ACTION REQUIRED] Risk Review Complete: ${businessName}`;
+        const html = `
+            <p>Risk assessment completed for <strong>${businessName}</strong>.</p>
+            <p>Please log in to perform Final Approval.</p>
+        `;
+        // In a real system, this would go to super-admin@vistalock.com
+        await this.sendAdminEmail(subject, html);
+    }
+
+    private async sendAdminEmail(subject: string, htmlContent: string) {
+        // Default admin email
+        const adminEmail = process.env.ADMIN_EMAIL || 'admin@vistalock.com';
+
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <body style="font-family: Arial, sans-serif; padding: 20px;">
+                <div style="background: #f3f4f6; padding: 20px; border-radius: 8px;">
+                    <h2 style="color: #1f2937;">VistaLock Admin Notification</h2>
+                    <div style="background: white; padding: 20px; border-radius: 4px; margin-top: 10px;">
+                        ${htmlContent}
+                    </div>
+                    <p style="font-size: 12px; color: #6b7280; margin-top: 20px;">This is an automated system notification.</p>
+                </div>
+            </body>
+            </html>
+        `;
+
+        try {
+            await this.mg.messages.create(this.domain, {
+                from: `VistaLock System <system@${this.domain}>`,
+                to: [adminEmail],
+                subject,
+                html,
+            });
+        } catch (error) {
+            console.error('Failed to send admin notification:', error);
+            // Don't throw, just log
+        }
+    }
 }
