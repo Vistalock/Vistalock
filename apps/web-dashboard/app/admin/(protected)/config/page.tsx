@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { SudoModal } from '@/components/ui/sudo-modal';
 import { Loader2, AlertTriangle, PauseCircle, PlayCircle, Save, Shield, Smartphone, Coins, Settings } from 'lucide-react';
 import { Input } from '@/components/ui/input';

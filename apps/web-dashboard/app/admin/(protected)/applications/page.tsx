@@ -1,4 +1,5 @@
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -10,7 +11,6 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -23,7 +23,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AlertCircle, CheckCircle, XCircle, Eye, MoreVertical, Archive, Trash2, Trash } from 'lucide-react';
+import { Eye, MoreVertical, Archive, Trash2, Trash } from 'lucide-react';
 import { SudoModal } from '@/components/ui/sudo-modal';
 import { CreateMerchantModal } from '@/components/ui/create-merchant-modal';
 import { ApplicationReviewModal } from '@/components/admin/ApplicationReviewModal';

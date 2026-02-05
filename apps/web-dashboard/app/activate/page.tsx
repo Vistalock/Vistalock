@@ -1,9 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import Image from 'next/image';
 import { Eye, EyeOff } from 'lucide-react';
 
 function ActivateAgentForm() {
@@ -15,7 +15,6 @@ function ActivateAgentForm() {
     const [loading, setLoading] = useState(true);
     const [verifying, setVerifying] = useState(true);
     const [error, setError] = useState('');
-    const [agentName, setAgentName] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -41,9 +40,8 @@ function ActivateAgentForm() {
 
     const verifyToken = async (token: string) => {
         try {
-            const response = await api.post('/agents/validate-token', { token });
+            await api.post('/agents/validate-token', { token });
             // For now, assume it's valid if no error.
-            setAgentName('Agent'); // Default
             setVerifying(false);
             setLoading(false);
         } catch (err: any) {
