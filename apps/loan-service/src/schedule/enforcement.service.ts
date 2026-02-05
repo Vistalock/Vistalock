@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as cron from 'node-cron';
 // @ts-ignore
@@ -13,7 +16,7 @@ export class EnforcementService implements OnModuleInit {
         // Schedule Midnight Job
         this.logger.log('Initializing Enforcement Scheduler (node-cron)...');
         cron.schedule('0 0 * * *', () => {
-            this.handleOverdueLoans();
+            void this.handleOverdueLoans();
         });
     }
 
