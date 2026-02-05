@@ -34,10 +34,34 @@ async function main() {
         create: {
             email: 'admin@vistalock.com',
             password: adminHash,
-            role: Role.ADMIN,
+            role: Role.SUPER_ADMIN,
         },
     });
     console.log(`Created/Updated Legacy Admin: ${admin.email}`);
+
+    // 1c. Create Ops Admin
+    const opsAdmin = await prisma.user.upsert({
+        where: { email: 'ops@vistalock.com' },
+        update: { password: adminHash },
+        create: {
+            email: 'ops@vistalock.com',
+            password: adminHash,
+            role: Role.OPS_ADMIN,
+        },
+    });
+    console.log(`Created Ops Admin: ${opsAdmin.email}`);
+
+    // 1d. Create Risk Admin
+    const riskAdmin = await prisma.user.upsert({
+        where: { email: 'risk@vistalock.com' },
+        update: { password: adminHash },
+        create: {
+            email: 'risk@vistalock.com',
+            password: adminHash,
+            role: Role.RISK_ADMIN,
+        },
+    });
+    console.log(`Created Risk Admin: ${riskAdmin.email}`);
 
     // 2. Create Merchant (skip if exists)
     let merchant;

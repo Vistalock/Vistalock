@@ -197,8 +197,8 @@ export class AuthController {
     @UseGuards(AuthGuard('jwt'))
     @Post('admin/users')
     async createInternalUser(@Request() req, @Body() body: RegisterDto) {
-        if (req.user.role !== 'SUPER_ADMIN') {
-            throw new UnauthorizedException('Only Super Admins can create internal users');
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') {
+            throw new UnauthorizedException('Only Super Admins or Admins can create internal users');
         }
 
         // Validate internal role
@@ -220,7 +220,7 @@ export class AuthController {
     @UseGuards(AuthGuard('jwt'))
     @Get('admin/users')
     async getInternalUsers(@Request() req) {
-        if (req.user.role !== 'SUPER_ADMIN') {
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') {
             throw new UnauthorizedException('Access denied');
         }
         return this.authService.getInternalUsers();
@@ -266,7 +266,7 @@ export class AuthController {
     @UseGuards(AuthGuard('jwt'), SudoGuard)
     @Post('admin/users/:id/suspend')
     async suspendUser(@Request() req, @Body() body: { isActive: boolean }, @Param('id') id: string) {
-        if (req.user.role !== 'SUPER_ADMIN') throw new UnauthorizedException('Access denied');
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') throw new UnauthorizedException('Access denied');
 
         await this.auditService.createLog({
             action: body.isActive ? 'ACTIVATE_USER' : 'SUSPEND_USER',
@@ -283,7 +283,7 @@ export class AuthController {
     @UseGuards(AuthGuard('jwt'), SudoGuard)
     @Post('admin/users/:id/role')
     async updateUserRole(@Request() req, @Body() body: { role: string }, @Param('id') id: string) {
-        if (req.user.role !== 'SUPER_ADMIN') throw new UnauthorizedException('Access denied');
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') throw new UnauthorizedException('Access denied');
 
         const internalRoles = ['SUPER_ADMIN', 'ADMIN', 'SUPPORT_ADMIN', 'COMPLIANCE_ADMIN', 'RISK_ADMIN', 'OPS_ADMIN', 'TECH_ADMIN'];
         if (!body.role || !internalRoles.includes(body.role)) {
@@ -305,7 +305,7 @@ export class AuthController {
     @UseGuards(AuthGuard('jwt'), SudoGuard)
     @Post('admin/users/:id/reset-password')
     async resetPassword(@Request() req, @Param('id') id: string) {
-        if (req.user.role !== 'SUPER_ADMIN') throw new UnauthorizedException('Access denied');
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') throw new UnauthorizedException('Access denied');
 
         await this.auditService.createLog({
             action: 'RESET_PASSWORD',
@@ -322,7 +322,7 @@ export class AuthController {
     @UseGuards(AuthGuard('jwt'), SudoGuard)
     @Delete('admin/users/:id')
     async deleteUser(@Request() req, @Param('id') id: string) {
-        if (req.user.role !== 'SUPER_ADMIN') throw new UnauthorizedException('Access denied');
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') throw new UnauthorizedException('Access denied');
 
         await this.auditService.createLog({
             action: 'DELETE_USER',
@@ -339,14 +339,14 @@ export class AuthController {
     @UseGuards(AuthGuard('jwt'))
     @Get('admin/analytics/financial')
     async getFinancialAnalytics(@Request() req) {
-        if (req.user.role !== 'SUPER_ADMIN') throw new UnauthorizedException('Access denied');
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') throw new UnauthorizedException('Access denied');
         return this.authService.getFinancialAnalytics();
     }
 
     @UseGuards(AuthGuard('jwt'))
     @Get('admin/analytics/risk')
     async getRiskAnalytics(@Request() req) {
-        if (req.user.role !== 'SUPER_ADMIN') throw new UnauthorizedException('Access denied');
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') throw new UnauthorizedException('Access denied');
         return this.authService.getRiskAnalytics();
     }
 

@@ -33,8 +33,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 export default function ApplicationsPage() {
     const [applications, setApplications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedIds, setSelectedIds] = useState<string[]>([]); // NEW: Track selected applications
-    const [bulkDeleteDialog, setBulkDeleteDialog] = useState(false); // NEW: Bulk delete confirmation
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [currentUser, setCurrentUser] = useState<any>(null); // NEW: Track current user
+    const [bulkDeleteDialog, setBulkDeleteDialog] = useState(false);
 
     // Modals state
     const [reviewModal, setReviewModal] = useState<{ isOpen: boolean, app: any | null }>({ isOpen: false, app: null });
@@ -44,8 +45,8 @@ export default function ApplicationsPage() {
 
     // Action state
     const [action, setAction] = useState<{ id: string, type: 'APPROVE' | 'REJECT' | 'REVIEW_OPS' | 'REVIEW_RISK' | 'AUTO_ASSESS' } | null>(null);
-    const [reviewData, setReviewData] = useState<any>(null); // Store checklist/notes
-    const [autoAssessing, setAutoAssessing] = useState<string | null>(null); // Track which app is being auto-assessed
+    const [reviewData, setReviewData] = useState<any>(null);
+    const [autoAssessing, setAutoAssessing] = useState<string | null>(null);
     const { toast } = useToast();
 
     const fetchApplications = async () => {
@@ -56,6 +57,13 @@ export default function ApplicationsPage() {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setApplications(res.data);
+
+            // NEW: Fetch current user profile to determine role
+            const profileRes = await axios.get(`${apiUrl}/auth/profile`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setCurrentUser(profileRes.data);
+
         } catch (error) {
             console.error(error);
         } finally {
@@ -351,13 +359,13 @@ export default function ApplicationsPage() {
                                                     <Eye className="h-4 w-4 text-blue-600" />
                                                 </Button>
 
-                                                {app.status === 'PENDING' && (
+                                                {app.status === 'PENDING' && (currentUser?.role === 'OPS_ADMIN' || currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN') && (
                                                     <Button size="sm" variant="outline" className="h-8 text-xs bg-yellow-50 text-yellow-700 border-yellow-200" onClick={() => openReview(app)}>
                                                         Start Ops Review
                                                     </Button>
                                                 )}
 
-                                                {app.status === 'OPS_REVIEWED' && (
+                                                {app.status === 'OPS_REVIEWED' && (currentUser?.role === 'RISK_ADMIN' || currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN') && (
                                                     <>
                                                         <Button
                                                             size="sm"
@@ -379,7 +387,7 @@ export default function ApplicationsPage() {
                                                     </>
                                                 )}
 
-                                                {app.status === 'RISK_REVIEWED' && (
+                                                {app.status === 'RISK_REVIEWED' && (currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN') && (
                                                     <Button size="sm" variant="outline" className="h-8 text-xs bg-green-50 text-green-700 border-green-200" onClick={() => openReview(app)}>
                                                         Final Approve
                                                     </Button>
