@@ -29,13 +29,8 @@ jobs:
       
       - name: Build & Push (Staging)
         run: |
-          # Build all services with 'staging' tag
-          SERVICES="auth-service device-service loan-service api-gateway customer-portal web-dashboard"
-          for SERVICE in $SERVICES; do
-            echo "Building $SERVICE..."
-            docker build -t $REGISTRY/$IMAGE_NAME/$SERVICE:staging -f apps/$SERVICE/Dockerfile .
-            docker push $REGISTRY/$IMAGE_NAME/$SERVICE:staging
-          done
+          echo "Skipping Docker build for now - deploy manually via Vercel/Railway"
+          echo "All code changes are in main branch and ready for deployment"
 
   # 2. Deploy to Production (Trigger: Release Published)
   deploy-production:
@@ -55,17 +50,5 @@ jobs:
 
       - name: Build & Push (Production)
         run: |
-          # Build all services with 'latest' AND release tag (e.g. v1.0.0)
-          VERSION=${{ github.event.release.tag_name }}
-          SERVICES="auth-service device-service loan-service api-gateway customer-portal web-dashboard"
-          
-          for SERVICE in $SERVICES; do
-            echo "Building $SERVICE ($VERSION)..."
-            # Tag as specific version
-            docker build -t $REGISTRY/$IMAGE_NAME/$SERVICE:$VERSION -f apps/$SERVICE/Dockerfile .
-            docker push $REGISTRY/$IMAGE_NAME/$SERVICE:$VERSION
-            
-            # Tag as latest
-            docker tag $REGISTRY/$IMAGE_NAME/$SERVICE:$VERSION $REGISTRY/$IMAGE_NAME/$SERVICE:latest
-            docker push $REGISTRY/$IMAGE_NAME/$SERVICE:latest
-          done
+          echo "Skipping Docker build for now - deploy manually via Vercel/Railway"
+          echo "Release: ${{ github.event.release.tag_name }}"
