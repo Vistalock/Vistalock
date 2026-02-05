@@ -4,13 +4,13 @@ import { Injectable, Logger } from '@nestjs/common';
 export class NotificationService {
     private readonly logger = new Logger(NotificationService.name);
 
-    async sendSms(to: string, message: string): Promise<void> {
+    sendSms(to: string, message: string): void {
         // In production, integration with Twilio/Termii would go here.
         // implementing "Mock" strategy for now.
         this.logger.log(`[SMS] To: ${to} | Message: ${message}`);
     }
 
-    async sendEmail(to: string, subject: string, body: string): Promise<void> {
+    sendEmail(to: string, subject: string, body: string): void {
         // In production, integrate with SendGrid/AWS SES
         this.logger.log(`[EMAIL] To: ${to} | Subject: ${subject}`);
         this.logger.debug(`[EMAIL BODY]: ${body}`);
