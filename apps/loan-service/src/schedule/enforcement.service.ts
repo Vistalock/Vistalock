@@ -3,7 +3,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as cron from 'node-cron';
-// @ts-ignore
 import { prisma, PaymentStatus, LoanStatus, DeviceStatus } from '@vistalock/database';
 import axios from 'axios';
 
@@ -64,8 +63,7 @@ export class EnforcementService implements OnModuleInit {
         // Actually, let's assume valid status update.
         await prisma.payment.update({
             where: { id: payment.id },
-            // @ts-ignore
-            data: { status: 'LATE' }
+            data: { status: 'LATE' as any }
         });
 
         // 3. Mark Loan as DEFAULTED (Optional logic, maybe only if X days late? For MVP, immediate)

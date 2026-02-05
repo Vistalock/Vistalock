@@ -1,16 +1,17 @@
+/* eslint-disable @typescript-eslint/require-await */
 import { Injectable, Logger } from '@nestjs/common';
 
 @Injectable()
 export class NotificationService {
     private readonly logger = new Logger(NotificationService.name);
 
-    sendSms(to: string, message: string): void {
+    async sendSms(to: string, message: string): Promise<void> {
         // In production, integration with Twilio/Termii would go here.
         // implementing "Mock" strategy for now.
         this.logger.log(`[SMS] To: ${to} | Message: ${message}`);
     }
 
-    sendEmail(to: string, subject: string, body: string): void {
+    async sendEmail(to: string, subject: string, body: string): Promise<void> {
         // In production, integrate with SendGrid/AWS SES
         this.logger.log(`[EMAIL] To: ${to} | Subject: ${subject}`);
         this.logger.debug(`[EMAIL BODY]: ${body}`);
