@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Product } from './entities/product.entity';
@@ -45,7 +45,7 @@ export class ProductsService {
             ]);
 
             console.log('✅ Product created successfully:', result[0]);
-            return result[0];
+            return result[0] as Product;
         } catch (err) {
             console.error('❌ CRITICAL ERROR IN CREATE:', err);
             throw err;
@@ -61,8 +61,8 @@ export class ProductsService {
 
     async findOne(id: string, merchantId: string): Promise<Product> {
         const product = await this.productsRepository.findOne({
-            where: { id, merchantId },
-        });
+            where: { id, merchantId } as any,
+        }) as Product | null;
 
         if (!product) {
             throw new NotFoundException(`Product with ID ${id} not found`);
