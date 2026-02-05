@@ -9,7 +9,7 @@ import { PaymentModal } from '@/components/payment-modal';
 
 export default function DashboardPage() {
     const router = useRouter();
-    const [loan, setLoan] = useState<any>(null);
+    const [loan, setLoan] = useState<{ id: string; status: string; installments?: Array<{ amountDue: number; amountPaid: number }> } | null>(null);
     const [loading, setLoading] = useState(true);
     const [showPayment, setShowPayment] = useState(false);
 
@@ -29,7 +29,7 @@ export default function DashboardPage() {
             // Ideally API Gateway forwards /loans to loan-service.
             const loanRes = await api.get(`/loans?userId=${userId}`);
             // Assuming the first active loan is the one.
-            const activeLoan = loanRes.data.find((l: any) => l.status === 'ACTIVE' || l.status === 'DEFAULTED');
+            const activeLoan = loanRes.data.find((l: { status: string }) => l.status === 'ACTIVE' || l.status === 'DEFAULTED');
             setLoan(activeLoan);
 
         } catch (e) {
@@ -41,12 +41,12 @@ export default function DashboardPage() {
 
     useEffect(() => {
         loadData();
-    }, [router]);
+    }, [router, loadData]);
 
     if (loading) return <div className="p-8 text-center">Loading...</div>;
 
     // Calculate Outstanding
-    const outstanding = loan?.installments?.reduce((acc: number, inst: any) => {
+    const outstanding = loan?.installments?.reduce((acc: number, inst: { amountDue: number; amountPaid: number }) => {
         return acc + (Number(inst.amountDue) - Number(inst.amountPaid));
     }, 0) || 0;
 

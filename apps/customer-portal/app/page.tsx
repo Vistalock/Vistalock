@@ -20,7 +20,7 @@ export default function LoginPage() {
     try {
       await api.post('/customers/initiate', { phoneNumber: phone });
       setStep(2);
-    } catch (e) {
+    } catch (_e) {
       alert('Failed to send OTP. Try again.');
     } finally {
       setLoading(false);
@@ -48,7 +48,7 @@ export default function LoginPage() {
         localStorage.setItem('customer_userId', userId);
         router.push('/dashboard');
       }
-    } catch (e) {
+    } catch (_e) {
       alert('Invalid OTP');
     } finally {
       setLoading(false);
