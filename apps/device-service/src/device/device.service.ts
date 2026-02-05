@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-// @ts-ignore
-import { prisma, DeviceStatus } from '@vistalock/database';
+import { prisma, DeviceStatus, Prisma } from '@vistalock/database';
 
 @Injectable()
 export class DeviceService {
@@ -88,7 +87,7 @@ export class DeviceService {
     }
 
     async findAll(merchantId?: string) {
-        const where: any = {};
+        const where: Prisma.DeviceWhereInput = {};
         if (merchantId) where.merchantId = merchantId;
 
         return prisma.device.findMany({

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [showPayment, setShowPayment] = useState(false);
 
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         const userId = localStorage.getItem('customer_userId');
         if (!userId) return router.push('/');
 
@@ -37,7 +37,7 @@ export default function DashboardPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [router]);
 
     useEffect(() => {
         loadData();

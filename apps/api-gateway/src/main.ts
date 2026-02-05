@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
 import { createProxyMiddleware } from 'http-proxy-middleware';
+import { Request, Response, NextFunction } from 'express';
 
 async function bootstrap() {
   // Enable body parser for local modules (like Products)
@@ -23,7 +24,7 @@ async function bootstrap() {
   });
 
   // Request Logging Middleware
-  app.use((req: any, res: any, next: any) => {
+  app.use((req: Request, _res: Response, next: NextFunction) => {
     console.log(`[Gateway] Incoming Request: ${req.method} ${req.url} `);
     next();
   });
@@ -38,15 +39,14 @@ async function bootstrap() {
     pathRewrite: { '^/': '/auth/' }, // Prepend /auth back after middleware strips it
     logger: console,
     on: {
-      proxyReq: (proxyReq, req, res) => {
-        console.log(`[Proxy] Auth: ${req.method} ${(req as any).originalUrl || req.url}`);
+      proxyReq: (proxyReq, req) => {
+        console.log(`[Proxy] Auth: ${req.method} ${req.originalUrl || req.url}`);
       },
       error: (err, req, res) => {
         console.error(`[Proxy] Error: ${err.message}`);
-        const response = res as any;
+        const response = res as Response;
         if (!response.headersSent) {
-          response.writeHead(502, { 'Content-Type': 'text/plain' });
-          response.end('Bad Gateway: Unable to connect to upstream service.');
+          response.status(502).send('Bad Gateway: Unable to connect to upstream service.');
         }
       }
     }
@@ -85,4 +85,8 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`[Gateway] Running on port ${port}`);
 }
-bootstrap();
+
+bootstrap().catch(err => {
+  console.error('Failed to start API Gateway:', err);
+  process.exit(1);
+});

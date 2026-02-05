@@ -1,6 +1,5 @@
 import { Controller, Post, Get, Body, Param, Patch, Query } from '@nestjs/common';
 import { DeviceService } from './device.service';
-// @ts-ignore
 import { DeviceStatus } from '@vistalock/database';
 import { RegisterDeviceDto } from './dto/device.dto';
 

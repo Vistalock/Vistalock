@@ -10,4 +10,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   await app.listen(process.env.PORT ?? 3002, '0.0.0.0');
 }
-bootstrap();
+bootstrap().catch(err => {
+  console.error('Failed to start Device Service:', err);
+  process.exit(1);
+});

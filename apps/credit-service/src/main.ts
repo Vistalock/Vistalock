@@ -25,4 +25,7 @@ async function bootstrap() {
     console.log(`🚀 Credit Service running on port ${port}`);
 }
 
-bootstrap();
+bootstrap().catch(err => {
+    console.error('Failed to start Credit Service:', err);
+    process.exit(1);
+});
