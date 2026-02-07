@@ -5,6 +5,9 @@ import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto } from './dto/auth.dto';
 import { SudoGuard } from './sudo.guard';
 import { AdminAuditService } from '../admin-audit/admin-audit.service';
+import { RolesGuard } from './roles.guard';
+import { Roles } from './roles.decorator';
+import { Role } from '@prisma/client';
 
 @Controller('auth')
 export class AuthController {
@@ -194,15 +197,12 @@ export class AuthController {
         return this.authService.getAgents(req.user.userId);
     }
 
-    @UseGuards(AuthGuard('jwt'))
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles(Role.SUPER_ADMIN, Role.ADMIN)
     @Post('admin/users')
     async createInternalUser(@Request() req, @Body() body: RegisterDto) {
-        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'ADMIN') {
-            throw new UnauthorizedException('Only Super Admins or Admins can create internal users');
-        }
-
         // Validate internal role
-        const internalRoles = ['SUPER_ADMIN', 'ADMIN', 'SUPPORT_ADMIN', 'COMPLIANCE_ADMIN', 'RISK_ADMIN', 'OPS_ADMIN', 'TECH_ADMIN'];
+        const internalRoles = ['SUPER_ADMIN', 'ADMIN', 'SUPPORT_ADMIN', 'COMPLIANCE_ADMIN', 'RISK_ADMIN', 'OPS_ADMIN', 'TECH_ADMIN', 'FINANCE_ADMIN'];
         if (!body.role || !internalRoles.includes(body.role)) {
             throw new UnauthorizedException('Invalid role for internal user');
         }

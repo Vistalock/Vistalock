@@ -65,7 +65,33 @@ export default function UnifiedDashboardLayout({ children, role, userEmail }: Un
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     let navItems = MERCHANT_NAV;
-    if (role === 'ADMIN') navItems = ADMIN_NAV;
+
+    // Dynamic Admin Nav based on Role
+    if (role === 'ADMIN') {
+        const email = userEmail?.toLowerCase() || '';
+
+        if (email.startsWith('ops@')) {
+            navItems = ADMIN_NAV.filter(item =>
+                ['Overview', 'Team', 'Applications'].includes(item.title)
+            );
+        } else if (email.startsWith('risk@')) {
+            navItems = ADMIN_NAV.filter(item =>
+                ['Overview', 'Analytics', 'Merchants', 'Applications'].includes(item.title)
+            );
+        } else if (email.startsWith('compliance@')) {
+            navItems = ADMIN_NAV.filter(item =>
+                ['Overview', 'Merchants', 'Applications', 'Audit Logs'].includes(item.title)
+            );
+        } else if (email.startsWith('finance@')) {
+            navItems = ADMIN_NAV.filter(item =>
+                ['Overview', 'Analytics', 'Merchants'].includes(item.title)
+            );
+        } else {
+            // Super Admin / Default Admin gets everything
+            navItems = ADMIN_NAV;
+        }
+    }
+
     if (role === 'LOAN_PARTNER') navItems = PARTNER_NAV;
 
     const handleLogout = () => {

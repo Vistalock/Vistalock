@@ -2,6 +2,10 @@ import { Controller, Post, Get, Body, Param, Patch, Query } from '@nestjs/common
 import { DeviceService } from './device.service';
 import { DeviceStatus } from '@vistalock/database';
 import { RegisterDeviceDto } from './dto/device.dto';
+import { UseGuards } from '@nestjs/common';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { Role } from '@prisma/client';
 
 @Controller('devices')
 export class DeviceController {
@@ -28,11 +32,15 @@ export class DeviceController {
     }
 
     @Patch(':imei/lock')
+    @UseGuards(RolesGuard)
+    @Roles(Role.OPS_ADMIN, Role.SUPER_ADMIN)
     lockDevice(@Param('imei') imei: string) {
         return this.deviceService.updateLockStatus(imei, DeviceStatus.LOCKED);
     }
 
     @Patch(':imei/unlock')
+    @UseGuards(RolesGuard)
+    @Roles(Role.OPS_ADMIN, Role.SUPER_ADMIN)
     unlockDevice(@Param('imei') imei: string) {
         return this.deviceService.updateLockStatus(imei, DeviceStatus.UNLOCKED);
     }

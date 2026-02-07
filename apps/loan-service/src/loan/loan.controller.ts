@@ -3,6 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { LoanService } from './loan.service';
 import { CreateLoanDto } from './dto/loan.dto';
 import * as crypto from 'crypto';
+import { UseGuards } from '@nestjs/common';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { Role } from '@prisma/client';
 
 @Controller('loans')
 export class LoanController {
@@ -17,6 +21,8 @@ export class LoanController {
     }
 
     @Get()
+    @UseGuards(RolesGuard)
+    @Roles(Role.RISK_ADMIN, Role.SUPER_ADMIN, Role.COMPLIANCE_ADMIN, Role.FINANCE_ADMIN)
     findAll(@Query('merchantId') merchantId?: string): Promise<any> {
         return this.loanService.getLoans(merchantId);
     }

@@ -63,6 +63,30 @@ async function main() {
     });
     console.log(`Created Risk Admin: ${riskAdmin.email}`);
 
+    // 1e. Create Compliance Admin
+    const complianceAdmin = await prisma.user.upsert({
+        where: { email: 'compliance@vistalock.com' },
+        update: { password: adminHash },
+        create: {
+            email: 'compliance@vistalock.com',
+            password: adminHash,
+            role: Role.COMPLIANCE_ADMIN,
+        },
+    });
+    console.log(`Created Compliance Admin: ${complianceAdmin.email}`);
+
+    // 1f. Create Finance Admin
+    const financeAdmin = await prisma.user.upsert({
+        where: { email: 'finance@vistalock.com' },
+        update: { password: adminHash },
+        create: {
+            email: 'finance@vistalock.com',
+            password: adminHash,
+            role: Role.FINANCE_ADMIN,
+        },
+    });
+    console.log(`Created Finance Admin: ${financeAdmin.email}`);
+
     // 2. Create Merchant (skip if exists)
     let merchant;
     try {
