@@ -14,6 +14,7 @@ enum Role {
   OPS_ADMIN // Operations
   RISK_ADMIN // Risk & Credit
   COMPLIANCE_ADMIN // Legal & Compliance
+  FINANCE_ADMIN // Finance & Treasury
   TECH_ADMIN // Technical / Platform
   SUPPORT_ADMIN // Customer Support
   MERCHANT
