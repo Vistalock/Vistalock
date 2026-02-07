@@ -76,7 +76,7 @@ export default function OpsDashboard({ stats }: OpsDashboardProps) {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-orange-600">{opsStats.heartbeatFailures}</div>
-                        <p className="text-xs text-muted-foreground">Offline > 24h</p>
+                        <p className="text-xs text-muted-foreground">Offline &gt; 24h</p>
                     </CardContent>
                 </Card>
 
