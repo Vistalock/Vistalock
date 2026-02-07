@@ -45,7 +45,7 @@ export function SystemHealth() {
                         </div>
                         <span className="text-xs text-yellow-600 font-bold">145ms (Degraded)</span>
                     </div>
-                    <Progress value={65} className="h-1.5 bg-slate-100" indicatorColor="bg-yellow-500" />
+                    <Progress value={65} className="h-1.5 bg-slate-100 [&>*]:bg-yellow-500" />
                 </div>
 
                 <div className="mt-4 pt-4 border-t">
