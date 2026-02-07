@@ -49,6 +49,20 @@ export class MerchantApplicationController {
         return this.appService.getApplications();
     }
 
+    // ADMIN: Reset Merchant Activation (delete existing merchant to allow re-activation)
+    @UseGuards(AuthGuard('jwt'))
+    @Post('admin/merchant-applications/reset-activation')
+    async resetActivation(@Request() req, @Body() body: { email: string }) {
+        if (req.user.role !== 'SUPER_ADMIN' && req.user.role !== 'COMPLIANCE_ADMIN') {
+            throw new UnauthorizedException('Access denied');
+        }
+        try {
+            return await this.appService.resetMerchantActivation(body.email);
+        } catch (error) {
+            throw new UnauthorizedException(error.message || 'Reset failed');
+        }
+    }
+
     // ADMIN: Ops Review
     @UseGuards(AuthGuard('jwt'))
     @Post('admin/merchant-applications/:id/review-ops')
