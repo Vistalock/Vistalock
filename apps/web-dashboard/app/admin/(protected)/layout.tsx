@@ -13,6 +13,7 @@ export default function AdminLayout({
 }) {
     const router = useRouter();
     const [authorized, setAuthorized] = useState(false);
+    const [user, setUser] = useState<any>(null);
 
     useEffect(() => {
         // Basic Client-side RBAC (Server-side check should be added to API calls)
@@ -30,17 +31,18 @@ export default function AdminLayout({
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (res.ok) {
-                    const user = await res.json();
+                    const userData = await res.json();
 
                     const adminRoles = [
                         'ADMIN', 'SUPER_ADMIN', 'OPS_ADMIN',
-                        'RISK_ADMIN', 'COMPLIANCE_ADMIN',
+                        'RISK_ADMIN', 'COMPLIANCE_ADMIN', 'FINANCE_ADMIN',
                         'TECH_ADMIN', 'SUPPORT_ADMIN'
                     ];
 
-                    if (!adminRoles.includes(user.role)) {
+                    if (!adminRoles.includes(userData.role)) {
                         router.push('/dashboard'); // Kick back to merchant dashboard
                     } else {
+                        setUser(userData);
                         setAuthorized(true);
                     }
                 } else {
@@ -54,10 +56,10 @@ export default function AdminLayout({
         checkAuth();
     }, [router]);
 
-    if (!authorized) return <div className="flex items-center justify-center h-screen">Checking permissions...</div>;
+    if (!authorized || !user) return <div className="flex items-center justify-center h-screen">Checking permissions...</div>;
 
     return (
-        <UnifiedDashboardLayout role="ADMIN" userEmail="superadmin@vistalock.com">
+        <UnifiedDashboardLayout role="ADMIN" userEmail={user.email}>
             {children}
         </UnifiedDashboardLayout>
     );
