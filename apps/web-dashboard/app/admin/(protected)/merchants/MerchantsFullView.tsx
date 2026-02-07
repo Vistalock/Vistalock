@@ -3,7 +3,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import OpsMerchantsReadOnly from '@/components/admin/pages/OpsMerchantsReadOnly';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,38 +39,6 @@ const getStatusVariant = (status: string) => {
 };
 
 export default function MerchantsPage() {
-    const [userEmail, setUserEmail] = useState<string>('');
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        // Decode JWT to get user email
-        const token = localStorage.getItem('token');
-        if (token) {
-            try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                setUserEmail(payload.email || '');
-            } catch (error) {
-                console.error('Error decoding token:', error);
-            }
-        }
-        setLoading(false);
-    }, []);
-
-    if (loading) return <div className="p-4">Loading...</div>;
-
-    // Ops Admin gets read-only view
-    const isOpsAdmin = userEmail.toLowerCase().startsWith('ops@');
-
-    if (isOpsAdmin) {
-        return <OpsMerchantsReadOnly />;
-    }
-
-    // Other admins get full management view
-    return <FullMerchantsManagementView />;
-}
-
-// Full management view for non-Ops admins
-function FullMerchantsManagementView() {
     const [merchants, setMerchants] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: 'soft' | 'hard' | null; merchant: any }>({ open: false, type: null, merchant: null });
