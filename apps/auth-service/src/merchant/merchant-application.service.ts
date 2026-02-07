@@ -381,6 +381,32 @@ export class MerchantApplicationService {
         }
     }
 
+    async resetMerchantActivation(email: string) {
+        // Find and delete existing user and merchant profile
+        const existingUser = await this.prisma.user.findUnique({
+            where: { email },
+            include: { merchantProfile: true }
+        });
+
+        if (!existingUser) {
+            return { success: true, message: 'No existing merchant found' };
+        }
+
+        // Delete merchant profile first
+        if (existingUser.merchantProfile) {
+            await this.prisma.merchantProfile.delete({
+                where: { id: existingUser.merchantProfile.id }
+            });
+        }
+
+        // Delete user
+        await this.prisma.user.delete({
+            where: { id: existingUser.id }
+        });
+
+        return { success: true, message: 'Merchant activation reset successfully' };
+    }
+
     async reviewByOps(id: string, adminId: string, reviewData: any) {
         // Ops Admin Action: Pass to Risk
         const app = await this.prisma.merchantApplication.findUnique({ where: { id } });
