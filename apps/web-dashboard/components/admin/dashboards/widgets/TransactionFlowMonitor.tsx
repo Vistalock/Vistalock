@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Activity, ServerCrash, CheckCircle2, XCircle, ArrowUpRight } from 'lucide-react';
+import { Activity, ServerCrash, CheckCircle2, ArrowUpRight } from 'lucide-react';
 
 export function TransactionFlowMonitor() {
     return (
