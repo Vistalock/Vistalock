@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Smartphone, CreditCard, Users, FileText, Settings, Shield, LogOut, UserCog, TrendingUp, Menu, PanelLeft, CreditCard as BillingIcon, User, Keyboard } from 'lucide-react';
+import { LayoutDashboard, Smartphone, CreditCard, Users, FileText, Settings, Shield, LogOut, UserCog, TrendingUp, Menu, PanelLeft, CreditCard as BillingIcon, User, Keyboard, Activity, Headphones, Bell, Store } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -36,12 +36,25 @@ const MERCHANT_NAV: NavItem[] = [
     { title: 'Settings', href: '/dashboard/settings', icon: <Settings className="h-4 w-4" /> },
 ];
 
+// Ops Admin specific navigation (9 operational features)
+const OPS_ADMIN_NAV: NavItem[] = [
+    { title: 'Dashboard', href: '/admin', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { title: 'Devices', href: '/admin/devices', icon: <Smartphone className="h-4 w-4" /> },
+    { title: 'Transactions', href: '/admin/transactions', icon: <CreditCard className="h-4 w-4" /> },
+    { title: 'Agents', href: '/admin/agents', icon: <Users className="h-4 w-4" /> },
+    { title: 'Merchants', href: '/admin/merchants', icon: <Store className="h-4 w-4" /> },
+    { title: 'Support', href: '/admin/support', icon: <Headphones className="h-4 w-4" /> },
+    { title: 'System Health', href: '/admin/system-health', icon: <Activity className="h-4 w-4" /> },
+    { title: 'Audit Logs', href: '/admin/audit-logs', icon: <FileText className="h-4 w-4" /> },
+    { title: 'Notifications', href: '/admin/notifications', icon: <Bell className="h-4 w-4" /> },
+];
+
 const ADMIN_NAV: NavItem[] = [
     { title: 'Overview', href: '/admin', icon: <LayoutDashboard className="h-4 w-4" /> },
     { title: 'Analytics', href: '/admin/analytics', icon: <TrendingUp className="h-4 w-4" /> },
     { title: 'Merchants', href: '/admin/merchants', icon: <Users className="h-4 w-4" /> },
     { title: 'Applications', href: '/admin/applications', icon: <FileText className="h-4 w-4" /> },
-    { title: 'Team', href: '/admin/users', icon: <UserCog className="h-4 w-4" /> }, // New: Internal Team
+    { title: 'Team', href: '/admin/users', icon: <UserCog className="h-4 w-4" /> },
     { title: 'Audit Logs', href: '/admin/audit', icon: <FileText className="h-4 w-4" /> },
     { title: 'System Config', href: '/admin/config', icon: <Settings className="h-4 w-4" /> },
 ];
@@ -71,9 +84,7 @@ export default function UnifiedDashboardLayout({ children, role, userEmail }: Un
         const email = userEmail?.toLowerCase() || '';
 
         if (email.startsWith('ops@')) {
-            navItems = ADMIN_NAV.filter(item =>
-                ['Overview', 'Applications'].includes(item.title)
-            );
+            navItems = OPS_ADMIN_NAV;
         } else if (email.startsWith('risk@')) {
             navItems = ADMIN_NAV.filter(item =>
                 ['Overview', 'Analytics', 'Merchants', 'Applications'].includes(item.title)
