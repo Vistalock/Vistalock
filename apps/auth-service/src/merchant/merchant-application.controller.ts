@@ -31,7 +31,12 @@ export class MerchantApplicationController {
         if (!body.token || !body.password) {
             throw new UnauthorizedException('Token and password are required');
         }
-        return this.appService.activateMerchant(body.token, body.password);
+        try {
+            return await this.appService.activateMerchant(body.token, body.password);
+        } catch (error) {
+            console.error('Activation controller error:', error);
+            throw new UnauthorizedException(error.message || 'Activation failed');
+        }
     }
 
     // PROTECTED: List Applications (Admin Only)

@@ -322,34 +322,42 @@ export class MerchantApplicationService {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create User + MerchantProfile
-        const user = await this.prisma.user.create({
-            data: {
-                email: application.email,
-                password: hashedPassword,
-                role: Role.MERCHANT,
-                merchantProfile: {
-                    create: {
-                        businessName: application.businessName,
-                        businessType: application.businessType as BusinessType || BusinessType.SOLE_PROPRIETORSHIP,
-                        rcNumber: application.cacNumber || application.businessName, // Fallback
-                        businessAddress: application.businessAddress,
-                        operatingAddress: application.operatingAddress,
-                        directorName: application.contactName,
-                        directorPhone: application.phone,
-                        status: MerchantStatus.APPROVED,
-                        agreementsSigned: true,
-                        // Extract bank details from JSON
-                        bankName: (application.bankDetails as any)?.bankName,
-                        accountNumber: (application.bankDetails as any)?.accountNumber,
-                        accountName: (application.bankDetails as any)?.accountName,
-                    }
-                }
-            },
-            include: { merchantProfile: true }
-        });
+        // Generate unique rcNumber if cacNumber is missing
+        const rcNumber = application.cacNumber || `TEMP-${application.id.substring(0, 8)}`;
 
-        return { success: true, user };
+        // Create User + MerchantProfile
+        try {
+            const user = await this.prisma.user.create({
+                data: {
+                    email: application.email,
+                    password: hashedPassword,
+                    role: Role.MERCHANT,
+                    merchantProfile: {
+                        create: {
+                            businessName: application.businessName,
+                            businessType: application.businessType as BusinessType || BusinessType.SOLE_PROPRIETORSHIP,
+                            rcNumber: rcNumber,
+                            businessAddress: application.businessAddress,
+                            operatingAddress: application.operatingAddress,
+                            directorName: application.contactName,
+                            directorPhone: application.phone,
+                            status: MerchantStatus.APPROVED,
+                            agreementsSigned: true,
+                            // Extract bank details from JSON
+                            bankName: (application.bankDetails as any)?.bankName,
+                            accountNumber: (application.bankDetails as any)?.accountNumber,
+                            accountName: (application.bankDetails as any)?.accountName,
+                        }
+                    }
+                },
+                include: { merchantProfile: true }
+            });
+
+            return { success: true, user };
+        } catch (error) {
+            console.error('Merchant activation error:', error);
+            throw new Error(`Failed to activate merchant: ${error.message}`);
+        }
     }
 
     async reviewByOps(id: string, adminId: string, reviewData: any) {
