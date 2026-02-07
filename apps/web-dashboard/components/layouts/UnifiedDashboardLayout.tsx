@@ -72,7 +72,7 @@ export default function UnifiedDashboardLayout({ children, role, userEmail }: Un
 
         if (email.startsWith('ops@')) {
             navItems = ADMIN_NAV.filter(item =>
-                ['Overview', 'Team', 'Applications'].includes(item.title)
+                ['Overview', 'Applications'].includes(item.title)
             );
         } else if (email.startsWith('risk@')) {
             navItems = ADMIN_NAV.filter(item =>
