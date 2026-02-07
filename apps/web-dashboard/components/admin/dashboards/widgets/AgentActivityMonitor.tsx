@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, AlertTriangle, UserMinus, ShieldAlert } from 'lucide-react';
-import { Badge } from "@/components/ui/badge";
+
 
 export function AgentActivityMonitor() {
     return (
