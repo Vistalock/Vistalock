@@ -2,7 +2,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Smartphone, AlertTriangle, Activity, HeadphonesIcon, UserPlus, ShieldAlert, WifiOff } from 'lucide-react';
+import { Shield, Smartphone, AlertTriangle, HeadphonesIcon, UserPlus, ShieldAlert, WifiOff } from 'lucide-react';
 import { DeviceOperationsPanel } from './widgets/DeviceOperationsPanel';
 import { TransactionFlowMonitor } from './widgets/TransactionFlowMonitor';
 import { AgentActivityMonitor } from './widgets/AgentActivityMonitor';
