@@ -325,6 +325,16 @@ export class MerchantApplicationService {
         // Generate unique rcNumber if cacNumber is missing
         const rcNumber = application.cacNumber || `TEMP-${application.id.substring(0, 8)}`;
 
+        // Check if merchant profile with this rcNumber already exists
+        const existingMerchantByRc = await this.prisma.merchantProfile.findUnique({
+            where: { rcNumber },
+            include: { user: true }
+        });
+
+        if (existingMerchantByRc) {
+            throw new Error('A merchant with this registration number already exists. If this is your account, please use the login page instead.');
+        }
+
         // Create User + MerchantProfile
         try {
             const user = await this.prisma.user.create({
@@ -356,6 +366,17 @@ export class MerchantApplicationService {
             return { success: true, user };
         } catch (error) {
             console.error('Merchant activation error:', error);
+
+            // Check if it's a duplicate email error
+            if (error.code === 'P2002') {
+                if (error.meta?.target?.includes('email')) {
+                    throw new Error('This email is already registered. Please use the login page instead.');
+                }
+                if (error.meta?.target?.includes('rcNumber')) {
+                    throw new Error('A merchant with this registration number already exists.');
+                }
+            }
+
             throw new Error(`Failed to activate merchant: ${error.message}`);
         }
     }
