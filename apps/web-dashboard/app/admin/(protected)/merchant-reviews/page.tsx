@@ -5,7 +5,14 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building2, FileText, CheckCircle, XCircle, AlertCircle, Clock } from 'lucide-react';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Building2, FileText, CheckCircle, XCircle, AlertCircle, Clock, Eye } from 'lucide-react';
 import axios from 'axios';
 import { useToast } from "@/hooks/use-toast";
 
@@ -22,6 +29,8 @@ const getStatusVariant = (status: string) => {
 export default function MerchantReviewsPage() {
     const [applications, setApplications] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedApp, setSelectedApp] = useState<any | null>(null);
+    const [detailsOpen, setDetailsOpen] = useState(false);
     const { toast } = useToast();
 
     const fetchApplications = async () => {
@@ -47,13 +56,14 @@ export default function MerchantReviewsPage() {
         try {
             const token = localStorage.getItem('token');
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-            await axios.patch(`${apiUrl}/admin/merchant-applications/${id}/approve`, {}, {
+            await axios.post(`${apiUrl}/admin/merchant-applications/${id}/approve`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             toast({
                 title: "Success",
                 description: "Merchant application approved successfully"
             });
+            setDetailsOpen(false);
             fetchApplications();
         } catch (error: any) {
             toast({
@@ -71,13 +81,14 @@ export default function MerchantReviewsPage() {
         try {
             const token = localStorage.getItem('token');
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-            await axios.patch(`${apiUrl}/admin/merchant-applications/${id}/reject`, { reason }, {
+            await axios.post(`${apiUrl}/admin/merchant-applications/${id}/reject`, { reason }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             toast({
                 title: "Success",
                 description: "Merchant application rejected"
             });
+            setDetailsOpen(false);
             fetchApplications();
         } catch (error: any) {
             toast({
@@ -110,6 +121,11 @@ export default function MerchantReviewsPage() {
                 variant: "destructive"
             });
         }
+    }
+
+    const viewDetails = (app: any) => {
+        setSelectedApp(app);
+        setDetailsOpen(true);
     }
 
     if (loading) return <div className="p-4">Loading applications...</div>;
@@ -191,11 +207,11 @@ export default function MerchantReviewsPage() {
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">Email:</span>
-                                        <span className="font-medium">{app.email}</span>
+                                        <span className="font-medium truncate ml-2">{app.email}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">Business Type:</span>
-                                        <span className="font-medium">{app.businessType}</span>
+                                        <span className="font-medium">{app.businessType || 'N/A'}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">Submitted:</span>
@@ -206,6 +222,15 @@ export default function MerchantReviewsPage() {
                                 </div>
 
                                 <div className="flex flex-col gap-2 pt-2">
+                                    <Button
+                                        onClick={() => viewDetails(app)}
+                                        size="sm"
+                                        variant="outline"
+                                        className="w-full"
+                                    >
+                                        <Eye className="h-4 w-4 mr-2" />
+                                        View Full Details
+                                    </Button>
                                     <Button
                                         onClick={() => handleApprove(app.id)}
                                         size="sm"
@@ -271,7 +296,7 @@ export default function MerchantReviewsPage() {
                                 <CardContent className="space-y-2 text-sm">
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">Email:</span>
-                                        <span className="font-medium">{app.email}</span>
+                                        <span className="font-medium truncate ml-2">{app.email}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-muted-foreground">Reviewed:</span>
@@ -279,12 +304,150 @@ export default function MerchantReviewsPage() {
                                             {new Date(app.updatedAt).toLocaleDateString()}
                                         </span>
                                     </div>
+                                    <Button
+                                        onClick={() => viewDetails(app)}
+                                        size="sm"
+                                        variant="ghost"
+                                        className="w-full mt-2"
+                                    >
+                                        <Eye className="h-4 w-4 mr-2" />
+                                        View Details
+                                    </Button>
                                 </CardContent>
                             </Card>
                         ))}
                     </div>
                 </div>
             )}
+
+            {/* Details Dialog */}
+            <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Building2 className="h-5 w-5" />
+                            {selectedApp?.businessName}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Complete merchant application details
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {selectedApp && (
+                        <div className="space-y-6">
+                            {/* Status */}
+                            <div>
+                                <Badge variant={getStatusVariant(selectedApp.status)} className="text-sm">
+                                    {selectedApp.status}
+                                </Badge>
+                            </div>
+
+                            {/* Business Information */}
+                            <div className="space-y-3">
+                                <h3 className="font-semibold text-lg">Business Information</h3>
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span className="text-muted-foreground">Legal Name:</span>
+                                        <p className="font-medium">{selectedApp.businessName}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground">Trading Name:</span>
+                                        <p className="font-medium">{selectedApp.tradingName || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground">Business Type:</span>
+                                        <p className="font-medium">{selectedApp.businessType || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground">CAC Number:</span>
+                                        <p className="font-medium">{selectedApp.cacNumber || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground">Nature of Business:</span>
+                                        <p className="font-medium">{selectedApp.natureOfBusiness || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground">Website:</span>
+                                        <p className="font-medium">{selectedApp.website || 'N/A'}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Contact Information */}
+                            <div className="space-y-3">
+                                <h3 className="font-semibold text-lg">Contact Information</h3>
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span className="text-muted-foreground">Contact Name:</span>
+                                        <p className="font-medium">{selectedApp.contactName}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground">Email:</span>
+                                        <p className="font-medium">{selectedApp.email}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground">Phone:</span>
+                                        <p className="font-medium">{selectedApp.phone}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground">State:</span>
+                                        <p className="font-medium">{selectedApp.state || 'N/A'}</p>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <span className="text-muted-foreground">Business Address:</span>
+                                        <p className="font-medium">{selectedApp.businessAddress}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Directors */}
+                            {selectedApp.directors && (
+                                <div className="space-y-3">
+                                    <h3 className="font-semibold text-lg">Directors</h3>
+                                    <div className="text-sm">
+                                        <pre className="bg-muted p-3 rounded overflow-x-auto">
+                                            {JSON.stringify(selectedApp.directors, null, 2)}
+                                        </pre>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Bank Details */}
+                            {selectedApp.bankDetails && (
+                                <div className="space-y-3">
+                                    <h3 className="font-semibold text-lg">Bank Details</h3>
+                                    <div className="text-sm">
+                                        <pre className="bg-muted p-3 rounded overflow-x-auto">
+                                            {JSON.stringify(selectedApp.bankDetails, null, 2)}
+                                        </pre>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Actions */}
+                            {selectedApp.status === 'PENDING' && (
+                                <div className="flex gap-3 pt-4 border-t">
+                                    <Button
+                                        onClick={() => handleApprove(selectedApp.id)}
+                                        className="flex-1"
+                                    >
+                                        <CheckCircle className="h-4 w-4 mr-2" />
+                                        Approve Application
+                                    </Button>
+                                    <Button
+                                        onClick={() => handleReject(selectedApp.id)}
+                                        variant="destructive"
+                                        className="flex-1"
+                                    >
+                                        <XCircle className="h-4 w-4 mr-2" />
+                                        Reject Application
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
