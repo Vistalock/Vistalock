@@ -28,7 +28,7 @@ export default function MerchantReviewsPage() {
         try {
             const token = localStorage.getItem('token');
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-            const response = await axios.get(`${apiUrl}/admin/applications`, {
+            const response = await axios.get(`${apiUrl}/admin/merchant-applications`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setApplications(response.data);
@@ -47,7 +47,7 @@ export default function MerchantReviewsPage() {
         try {
             const token = localStorage.getItem('token');
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-            await axios.patch(`${apiUrl}/admin/applications/${id}/approve`, {}, {
+            await axios.patch(`${apiUrl}/admin/merchant-applications/${id}/approve`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             toast({
@@ -71,7 +71,7 @@ export default function MerchantReviewsPage() {
         try {
             const token = localStorage.getItem('token');
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-            await axios.patch(`${apiUrl}/admin/applications/${id}/reject`, { reason }, {
+            await axios.patch(`${apiUrl}/admin/merchant-applications/${id}/reject`, { reason }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             toast({
@@ -95,7 +95,7 @@ export default function MerchantReviewsPage() {
         try {
             const token = localStorage.getItem('token');
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-            await axios.patch(`${apiUrl}/admin/applications/${id}/request-info`, { message }, {
+            await axios.patch(`${apiUrl}/admin/merchant-applications/${id}/request-info`, { message }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             toast({
