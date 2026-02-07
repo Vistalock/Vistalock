@@ -36,15 +36,24 @@ const MERCHANT_NAV: NavItem[] = [
     { title: 'Settings', href: '/dashboard/settings', icon: <Settings className="h-4 w-4" /> },
 ];
 
-// Ops Admin specific navigation (9 operational features)
+// Ops Admin specific navigation (8 operational features - NO merchant approvals)
 const OPS_ADMIN_NAV: NavItem[] = [
     { title: 'Dashboard', href: '/admin', icon: <LayoutDashboard className="h-4 w-4" /> },
     { title: 'Devices', href: '/admin/devices', icon: <Smartphone className="h-4 w-4" /> },
     { title: 'Transactions', href: '/admin/transactions', icon: <CreditCard className="h-4 w-4" /> },
     { title: 'Agents', href: '/admin/agents', icon: <Users className="h-4 w-4" /> },
-    { title: 'Merchants', href: '/admin/merchants', icon: <Store className="h-4 w-4" /> },
+    { title: 'Merchants', href: '/admin/merchants', icon: <Store className="h-4 w-4" /> }, // Read-only status
     { title: 'Support', href: '/admin/support', icon: <Headphones className="h-4 w-4" /> },
     { title: 'System Health', href: '/admin/system-health', icon: <Activity className="h-4 w-4" /> },
+    { title: 'Audit Logs', href: '/admin/audit-logs', icon: <FileText className="h-4 w-4" /> },
+    { title: 'Notifications', href: '/admin/notifications', icon: <Bell className="h-4 w-4" /> },
+];
+
+// Compliance Admin specific navigation (KYC/KYB review authority)
+const COMPLIANCE_ADMIN_NAV: NavItem[] = [
+    { title: 'Dashboard', href: '/admin', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { title: 'Merchant Reviews', href: '/admin/merchant-reviews', icon: <FileText className="h-4 w-4" /> }, // Primary: KYC/KYB approval
+    { title: 'Merchants', href: '/admin/merchants', icon: <Store className="h-4 w-4" /> },
     { title: 'Audit Logs', href: '/admin/audit-logs', icon: <FileText className="h-4 w-4" /> },
     { title: 'Notifications', href: '/admin/notifications', icon: <Bell className="h-4 w-4" /> },
 ];
@@ -90,9 +99,7 @@ export default function UnifiedDashboardLayout({ children, role, userEmail }: Un
                 ['Overview', 'Analytics', 'Merchants', 'Applications'].includes(item.title)
             );
         } else if (email.startsWith('compliance@')) {
-            navItems = ADMIN_NAV.filter(item =>
-                ['Overview', 'Merchants', 'Applications', 'Audit Logs'].includes(item.title)
-            );
+            navItems = COMPLIANCE_ADMIN_NAV;
         } else if (email.startsWith('finance@')) {
             navItems = ADMIN_NAV.filter(item =>
                 ['Overview', 'Analytics', 'Merchants'].includes(item.title)
