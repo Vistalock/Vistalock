@@ -61,9 +61,8 @@ model User {
   merchant   User?   @relation("MerchantAgents", fields: [merchantId], references: [id])
   agents     User[]  @relation("MerchantAgents")
 
-  // Loan Partner Relation (For Dashboard Access)
-  loanPartnerId String?
-  loanPartner   LoanPartner? @relation(fields: [loanPartnerId], references: [id])
+  // Merchant's Loan Partners
+  merchantLoanPartners LoanPartner[] @relation("MerchantLoanPartners")
 
   // Audit
   auditLogs      AuditLog[]
@@ -71,6 +70,13 @@ model User {
 
   // Refresh Tokens
   refreshTokens RefreshToken[]
+
+  // Billing & Wallet (NEW)
+  wallet               MerchantWallet?
+  enrollmentBillings   EnrollmentBilling[]
+  walletTransactions   WalletTransaction[]   @relation("MerchantWalletTransactions")
+  featureSubscriptions FeatureSubscription[]
+  featureRequests      FeatureRequest[]
 }
 
 model AgentProfile {
@@ -269,7 +275,8 @@ model Device {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  lockEvents LockEvent[]
+  lockEvents        LockEvent[]
+  enrollmentBilling EnrollmentBilling?
 }
 
 enum TransactionType {
@@ -331,6 +338,19 @@ model MerchantProfile {
   maxAgents          Int   @default(2)
   enabledDeviceTypes Json? @default("[\"ANDROID\"]")
 
+  // WHITE-LABEL BRANDING (NEW)
+  companyName    String? // Display name (can differ from businessName)
+  logoUrl        String? // Company logo URL
+  faviconUrl     String? // Browser favicon URL
+  primaryColor   String? @default("#4F46E5") // Brand primary color
+  secondaryColor String? @default("#10B981") // Brand secondary color
+  accentColor    String? @default("#F59E0B") // Brand accent color
+
+  // CUSTOM DOMAIN (PREMIUM FEATURE)
+  customDomain   String? @unique // e.g. portal.merchantname.com
+  domainVerified Boolean @default(false)
+  sslEnabled     Boolean @default(false)
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime? // Soft delete timestamp
@@ -380,7 +400,10 @@ model Product {
   merchantId String
   merchant   User   @relation(fields: [merchantId], references: [id])
 
-  // Platform Pivot: Product is financed by a specific Loan Partner
+  // FINANCING MODE (NEW)
+  financingMode String? @default("SELF") // SELF (merchant self-finances), LOAN_PARTNER
+
+  // Platform Pivot: Product is financed by a specific Loan Partner (optional)
   loanPartnerId String?
   loanPartner   LoanPartner? @relation(fields: [loanPartnerId], references: [id])
 
@@ -581,17 +604,27 @@ model LoanPartner {
   id String @id @default(uuid())
 
   name        String
-  slug        String  @unique // e.g. 'fincra', 'fairmoney'
+  slug        String // e.g. 'fincra', 'fairmoney' - NOT globally unique anymore
   description String?
   logoUrl     String?
 
-  // API Integration Config
-  baseUrl       String?
-  apiKey        String? // Encrypted
-  webhookSecret String?
+  // MERCHANT-SCOPED (NEW)
+  merchantId String
+  merchant   User   @relation("MerchantLoanPartners", fields: [merchantId], references: [id])
+
+  // API Integration Config (for external loan partner API)
+  apiKey        String? @unique // For loan partner to authenticate
+  apiSecret     String? // Encrypted - for loan partner to authenticate
+  webhookUrl    String? // Loan partner's webhook URL
+  webhookSecret String? // For verifying webhooks FROM loan partner
+
+  // Contact Information
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
 
   // Configuration
-  isActive                Boolean @default(true)
+  status                  String  @default("ACTIVE") // ACTIVE, INACTIVE
   supportedRepaymentTypes Json? // ["DAILY", "WEEKLY", "MONTHLY"]
   maxTenure               Int     @default(12)
   minDownPaymentPct       Decimal @default(30.0)
@@ -604,7 +637,10 @@ model LoanPartner {
   loans       Loan[]
   products    Product[]
   webhookLogs WebhookLog[]
-  users       User[]
+
+  @@unique([merchantId, slug]) // Slug unique per merchant
+  @@index([merchantId])
+  @@index([status])
 }
 
 model LockEvent {
@@ -653,4 +689,138 @@ model RefreshToken {
 
   @@index([userId])
   @@index([token])
+}
+
+// ==================== BILLING & WALLET MODELS ====================
+
+model MerchantWallet {
+  id         String  @id @default(uuid())
+  merchantId String  @unique
+  merchant   User    @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  balance    Decimal @default(0) @db.Decimal(15, 2)
+  currency   String  @default("NGN")
+  status     String  @default("ACTIVE") // ACTIVE, SUSPENDED
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id            String         @id @default(uuid())
+  walletId      String
+  wallet        MerchantWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  merchantId    String
+  merchant      User           @relation("MerchantWalletTransactions", fields: [merchantId], references: [id])
+  type          String // CREDIT (top-up), DEBIT (enrollment fee, subscription)
+  amount        Decimal        @db.Decimal(15, 2)
+  balanceBefore Decimal        @db.Decimal(15, 2)
+  balanceAfter  Decimal        @db.Decimal(15, 2)
+  reference     String? // Payment reference (Paystack, bank transfer, etc.)
+  description   String
+  metadata      Json? // Additional data
+
+  createdAt DateTime @default(now())
+
+  @@index([walletId])
+  @@index([merchantId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model EnrollmentBilling {
+  id             String    @id @default(uuid())
+  merchantId     String
+  merchant       User      @relation(fields: [merchantId], references: [id])
+  deviceId       String    @unique
+  device         Device    @relation(fields: [deviceId], references: [id])
+  amount         Decimal   @db.Decimal(10, 2)
+  tier           String // Pricing tier name applied
+  volumeAtTime   Int // Monthly enrollment volume when this device was enrolled
+  status         String // PENDING, PAID, REVERSED
+  paidAt         DateTime?
+  reversedAt     DateTime?
+  reversalReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([merchantId])
+  @@index([deviceId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model PricingTier {
+  id             String  @id @default(uuid())
+  name           String
+  minVolume      Int // Minimum monthly enrollments
+  maxVolume      Int? // Maximum (null = unlimited)
+  pricePerDevice Decimal @db.Decimal(10, 2)
+  currency       String  @default("NGN")
+  isActive       Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([minVolume])
+}
+
+// ==================== FEATURE ADD-ON MODELS ====================
+
+model Feature {
+  id          String  @id @default(uuid())
+  name        String
+  description String  @db.Text
+  category    String // SECURITY, ANALYTICS, INTEGRATION, SUPPORT
+  pricingType String // PER_DEVICE, FLAT_MONTHLY, ONE_TIME
+  price       Decimal @db.Decimal(10, 2)
+  isActive    Boolean @default(true)
+  metadata    Json? // Additional configuration
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscriptions FeatureSubscription[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model FeatureSubscription {
+  id          String    @id @default(uuid())
+  merchantId  String
+  merchant    User      @relation(fields: [merchantId], references: [id])
+  featureId   String
+  feature     Feature   @relation(fields: [featureId], references: [id])
+  status      String    @default("ACTIVE") // ACTIVE, CANCELLED
+  startedAt   DateTime  @default(now())
+  cancelledAt DateTime?
+
+  @@unique([merchantId, featureId])
+  @@index([merchantId])
+  @@index([featureId])
+  @@index([status])
+}
+
+model FeatureRequest {
+  id          String   @id @default(uuid())
+  merchantId  String
+  merchant    User     @relation(fields: [merchantId], references: [id])
+  title       String
+  description String   @db.Text
+  useCase     String?  @db.Text
+  budget      Decimal? @db.Decimal(10, 2)
+  status      String   @default("PENDING") // PENDING, REVIEWING, QUOTED, APPROVED, REJECTED
+  adminNotes  String?  @db.Text
+  quotedPrice Decimal? @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([merchantId])
+  @@index([status])
+  @@index([createdAt])
 }
