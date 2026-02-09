@@ -14,17 +14,23 @@ export class ProductsController {
             throw new UnauthorizedException('Only Merchants can create products');
         }
 
-        // If Admin, they might specify merchantId in body? For now assume logged in Merchant.
-        // If Merchant_Agent? Agents usually don't create products, they sell them.
+        // Map frontend field names to database schema
+        const productData = {
+            name: body.name,
+            brand: body.brand,
+            model: body.model,
+            osType: body.osType,
+            price: body.retailPrice, // Map retailPrice -> price
+            minDownPayment: body.downPayment || 0, // Map downPayment -> minDownPayment
+            maxTenure: body.maxTenureMonths || 12,
+            stockQuantity: body.stockQuantity || 0,
+            category: body.category,
+            description: body.description,
+            loanPartnerId: body.loanPartnerId || null,
+            // Add any other fields from body that match schema
+        };
 
-        const merchantId = req.user.merchantId || req.user.userId; // Depending on how we store it in JWT or User
-        // Actually, if role is MERCHANT, req.user.userId is the merchant's User ID.
-        // If role is MERCHANT_AGENT, req.user.merchantId is valid.
-
-        // Let's assume the Creator IS the Merchant User for now.
-        // If the user is an Agent, they can't create products.
-
-        return this.productsService.create(req.user.userId, body);
+        return this.productsService.create(req.user.userId, productData);
     }
 
     @Patch(':id')

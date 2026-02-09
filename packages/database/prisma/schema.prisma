@@ -68,6 +68,9 @@ model User {
   // Audit
   auditLogs      AuditLog[]
   agentLoginLogs AgentLoginLog[]
+
+  // Refresh Tokens
+  refreshTokens RefreshToken[]
 }
 
 model AgentProfile {
@@ -170,39 +173,39 @@ model MerchantApplication {
   businessName        String // Legal Name
   tradingName         String?
   businessType        String? // Sole Prop, LLC, etc.
-  cacNumber           String? @unique // NEW: Unique constraint
+  cacNumber           String?   @unique // NEW: Unique constraint
   dateOfIncorporation DateTime?
   natureOfBusiness    String?
   website             String?
 
   // 2. Contact & Address
   contactName      String
-  email            String @unique // NEW: Unique constraint
-  phone            String @unique // NEW: Unique constraint
+  email            String  @unique // NEW: Unique constraint
+  phone            String  @unique // NEW: Unique constraint
   businessAddress  String // Registered
   operatingAddress String?
 
-  state               String?
-  lga                 String?
-  yearsInOperation    Int?
+  state            String?
+  lga              String?
+  yearsInOperation Int?
 
   // 3-9. Complex Data (Stored as JSON for flexibility during application)
-  directors          Json? // [{ name, dob, nationality, address, idType, idNumber, share }]
-  signatories        Json? // [{ name, role, contact, idNumber }]
-  bankDetails        Json? // { bankName, accountName, accountNumber, bvn, settlementCycle }
-  
+  directors   Json? // [{ name, dob, nationality, address, idType, idNumber, share }]
+  signatories Json? // [{ name, role, contact, idNumber }]
+  bankDetails Json? // { bankName, accountName, accountNumber, bvn, settlementCycle }
+
   // New JSON Fields for Detailed Sections
   branches           Json? // [{ name, address, managerName, managerPhone, hours }]
   productDeclaration Json? // { categories: [], brand: [], minPrice, maxPrice, monthlyVolume, condition }
-  
+
   // Legacy / Other
-  operations         Json? // { yearsInOp, outlets, monthlyVolume, avgPrice, salesChannels }
-  deviceDetails      Json? // { types, specs, source, support }
-  agentDetails       Json? // { expectedCount, location, onboardingMethod }
-  
-  documents          Json? // URL links to uploaded files { certificate, cacStatus, utilityBill, ids, etc }
-  compliance         Json? // { agreedToDataProcessing, agreedToLocking, etc }
-  reviews            Json? // Audit trail: [{ stage, adminId, timestamp, passed, notes, checklist }]
+  operations    Json? // { yearsInOp, outlets, monthlyVolume, avgPrice, salesChannels }
+  deviceDetails Json? // { types, specs, source, support }
+  agentDetails  Json? // { expectedCount, location, onboardingMethod }
+
+  documents  Json? // URL links to uploaded files { certificate, cacStatus, utilityBill, ids, etc }
+  compliance Json? // { agreedToDataProcessing, agreedToLocking, etc }
+  reviews    Json? // Audit trail: [{ stage, adminId, timestamp, passed, notes, checklist }]
 
   status ApplicationStatus @default(PENDING)
 
@@ -266,7 +269,7 @@ model Device {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  lockEvents    LockEvent[]
+  lockEvents LockEvent[]
 }
 
 enum TransactionType {
@@ -586,12 +589,12 @@ model LoanPartner {
   baseUrl       String?
   apiKey        String? // Encrypted
   webhookSecret String?
-  
+
   // Configuration
-  isActive               Boolean @default(true)
-  supportedRepaymentTypes Json?   // ["DAILY", "WEEKLY", "MONTHLY"]
-  maxTenure              Int     @default(12)
-  minDownPaymentPct      Decimal @default(30.0)
+  isActive                Boolean @default(true)
+  supportedRepaymentTypes Json? // ["DAILY", "WEEKLY", "MONTHLY"]
+  maxTenure               Int     @default(12)
+  minDownPaymentPct       Decimal @default(30.0)
 
   // System
   createdAt DateTime @default(now())
@@ -613,8 +616,8 @@ model LockEvent {
   type        String // SOFT_LOCK, HARD_LOCK, UNLOCK
   reason      String?
   triggeredBy String // "SYSTEM", "LOAN_PARTNER_WEBHOOK", "ADMIN_OVERRIDE"
-  
-  metadata    Json? // Snapshot of loan status or API payload
+
+  metadata Json? // Snapshot of loan status or API payload
 
   createdAt DateTime @default(now())
 
@@ -637,4 +640,17 @@ model WebhookLog {
 
   @@index([loanPartnerId])
   @@index([createdAt])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revoked   Boolean  @default(false)
+
+  @@index([userId])
+  @@index([token])
 }
