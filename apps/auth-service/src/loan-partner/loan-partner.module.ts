@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
-import { LoanPartnerController } from './loan-partner.controller';
+import { MerchantLoanPartnerController, LoanPartnerApiController } from './loan-partner.controller';
 import { LoanPartnerService } from './loan-partner.service';
 import { PrismaService } from '../prisma.service';
 import { DeviceControlModule } from '../device-control/device-control.module';
 
 @Module({
     imports: [DeviceControlModule],
-    controllers: [LoanPartnerController],
+    controllers: [MerchantLoanPartnerController, LoanPartnerApiController],
     providers: [LoanPartnerService, PrismaService],
-    exports: [LoanPartnerService],
+    exports: [LoanPartnerService]
 })
 export class LoanPartnerModule { }

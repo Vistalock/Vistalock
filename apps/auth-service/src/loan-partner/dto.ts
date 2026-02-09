@@ -1,6 +1,8 @@
 import { IsString, IsNotEmpty, IsNumber, IsEmail, IsOptional, IsEnum, IsBoolean, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
+// ==================== MERCHANT LOAN PARTNER MANAGEMENT ====================
+
 export class CreateLoanPartnerDto {
     @IsString()
     @IsNotEmpty()
@@ -8,7 +10,7 @@ export class CreateLoanPartnerDto {
 
     @IsString()
     @IsNotEmpty()
-    slug: string; // e.g., 'carbon'
+    slug: string; // e.g., 'quickcredit', 'fincra' - unique per merchant
 
     @IsString()
     @IsOptional()
@@ -16,15 +18,68 @@ export class CreateLoanPartnerDto {
 
     @IsString()
     @IsOptional()
-    baseUrl?: string;
+    logoUrl?: string;
+
+    // Contact Information
+    @IsString()
+    @IsOptional()
+    contactName?: string;
+
+    @IsEmail()
+    @IsOptional()
+    contactEmail?: string;
 
     @IsString()
     @IsOptional()
-    apiKey?: string;
+    contactPhone?: string;
+
+    // Webhook Configuration
+    @IsString()
+    @IsOptional()
+    webhookUrl?: string; // Loan partner's webhook URL
+
+    // Configuration
+    @IsNumber()
+    @IsOptional()
+    minDownPaymentPct?: number;
+
+    @IsNumber()
+    @IsOptional()
+    maxTenure?: number;
+}
+
+export class UpdateLoanPartnerDto {
+    @IsString()
+    @IsOptional()
+    name?: string;
 
     @IsString()
     @IsOptional()
-    webhookSecret?: string;
+    description?: string;
+
+    @IsString()
+    @IsOptional()
+    logoUrl?: string;
+
+    @IsString()
+    @IsOptional()
+    contactName?: string;
+
+    @IsEmail()
+    @IsOptional()
+    contactEmail?: string;
+
+    @IsString()
+    @IsOptional()
+    contactPhone?: string;
+
+    @IsString()
+    @IsOptional()
+    webhookUrl?: string;
+
+    @IsString()
+    @IsOptional()
+    status?: 'ACTIVE' | 'INACTIVE';
 
     @IsNumber()
     @IsOptional()
@@ -35,26 +90,29 @@ export class CreateLoanPartnerDto {
     maxTenure?: number;
 }
 
+// ==================== EXTERNAL LOAN PARTNER API ====================
 
-// LPIS: Loan Creation (From Partner -> VistaLock)
-export class LpisCreateLoanDto {
+// Loan partner authentication
+export class LoanPartnerLoginDto {
     @IsString()
     @IsNotEmpty()
-    merchantId: string;
-
-    @IsString()
-    @IsOptional()
-    agentId?: string;
+    apiKey: string;
 
     @IsString()
     @IsNotEmpty()
-    deviceImei: string; // Must be pre-registered or created on-fly
+    apiSecret: string;
+}
+
+// Loan creation from partner
+export class CreateLoanFromPartnerDto {
+    @IsString()
+    @IsNotEmpty()
+    deviceImei: string;
 
     @IsString()
     @IsNotEmpty()
     productId: string;
 
-    // Customer Info (Minimal needed for binding)
     @IsString()
     @IsNotEmpty()
     customerPhone: string;
@@ -63,7 +121,6 @@ export class LpisCreateLoanDto {
     @IsOptional()
     customerNin?: string;
 
-    // Financials
     @IsNumber()
     loanAmount: number;
 
@@ -78,10 +135,136 @@ export class LpisCreateLoanDto {
 
     @IsNumber()
     @IsOptional()
-    interestRate?: number; // Annual interest rate percentage
+    interestRate?: number;
 
     @IsOptional()
-    repaymentSchedule?: any[]; // Array of due dates
+    repaymentSchedule?: any[];
+
+    @IsString()
+    @IsOptional()
+    partnerLoanId?: string; // Partner's internal loan ID
+}
+
+// Payment update from partner
+export class PaymentUpdateDto {
+    @IsString()
+    @IsNotEmpty()
+    loanId: string; // VistaLock loan ID
+
+    @IsNumber()
+    amountPaid: number;
+
+    @IsString()
+    paymentDate: string;
+
+    @IsNumber()
+    remainingBalance: number;
+
+    @IsString()
+    @IsOptional()
+    status?: 'CURRENT' | 'OVERDUE' | 'PAID';
+
+    @IsString()
+    @IsOptional()
+    partnerReference?: string;
+}
+
+// Overdue notification from partner
+export class OverdueNotificationDto {
+    @IsString()
+    @IsNotEmpty()
+    loanId: string;
+
+    @IsNumber()
+    daysOverdue: number;
+
+    @IsString()
+    actionRequired: 'LOCK_DEVICE' | 'SEND_REMINDER' | 'ESCALATE';
+
+    @IsString()
+    @IsOptional()
+    notes?: string;
+}
+
+// Loan closure from partner
+export class LoanClosureDto {
+    @IsString()
+    @IsNotEmpty()
+    loanId: string;
+
+    @IsString()
+    closedAt: string;
+
+    @IsString()
+    @IsOptional()
+    closureReason?: 'PAID_IN_FULL' | 'SETTLED' | 'WRITTEN_OFF';
+}
+
+// Dispute from partner
+export class DisputeDto {
+    @IsString()
+    @IsNotEmpty()
+    loanId: string;
+
+    @IsString()
+    @IsNotEmpty()
+    disputeType: 'PAYMENT_DISCREPANCY' | 'DEVICE_ISSUE' | 'CUSTOMER_COMPLAINT' | 'OTHER';
+
+    @IsString()
+    @IsNotEmpty()
+    description: string;
+
+    @IsString()
+    @IsOptional()
+    priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+}
+
+// ==================== LEGACY (Deprecated) ====================
+
+// LPIS: Loan Creation (From Partner -> VistaLock)
+export class LpisCreateLoanDto {
+    @IsString()
+    @IsNotEmpty()
+    merchantId: string;
+
+    @IsString()
+    @IsOptional()
+    agentId?: string;
+
+    @IsString()
+    @IsNotEmpty()
+    deviceImei: string;
+
+    @IsString()
+    @IsNotEmpty()
+    productId: string;
+
+    @IsString()
+    @IsNotEmpty()
+    customerPhone: string;
+
+    @IsString()
+    @IsOptional()
+    customerNin?: string;
+
+    @IsNumber()
+    loanAmount: number;
+
+    @IsNumber()
+    downPayment: number;
+
+    @IsNumber()
+    tenure: number;
+
+    @IsNumber()
+    monthlyRepayment: number;
+
+    @IsNumber()
+    @IsOptional()
+    interestRate?: number;
+
+    @IsOptional()
+    repaymentSchedule?: any[];
 }
 
 // LPIS: Webhook Payload (From Partner -> VistaLock)
@@ -92,10 +275,7 @@ export class LpisWebhookDto {
 
     @IsString()
     @IsNotEmpty()
-    loanId: string; // VistaLock Loan ID or Partner Reference? We need to decide. Usually Partner sends THEIR ID + Our ID.
-
-    // Actually, webhooks often rely on metadata passed during creation. 
-    // Let's assume we pass a `reference` to them, and they return it.
+    loanId: string;
 
     @IsNumber()
     @IsOptional()
