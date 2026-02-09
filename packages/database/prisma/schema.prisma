@@ -608,9 +608,9 @@ model LoanPartner {
   description String?
   logoUrl     String?
 
-  // MERCHANT-SCOPED (NEW)
-  merchantId String
-  merchant   User   @relation("MerchantLoanPartners", fields: [merchantId], references: [id])
+  // MERCHANT-SCOPED (NEW) - Made optional for migration compatibility
+  merchantId String? // Optional to allow existing data migration
+  merchant   User?   @relation("MerchantLoanPartners", fields: [merchantId], references: [id], onDelete: Cascade)
 
   // API Integration Config (for external loan partner API)
   apiKey        String? @unique // For loan partner to authenticate
