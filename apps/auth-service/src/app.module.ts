@@ -19,6 +19,7 @@ import { CreditModule } from './credit/credit.module';
 import { PaymentsModule } from './payments/payments.module';
 import { LoanPartnerModule } from './loan-partner/loan-partner.module';
 import { BillingModule } from './billing/billing.module';
+import { FeaturesModule } from './features/features.module';
 
 
 @Module({
@@ -44,7 +45,8 @@ import { BillingModule } from './billing/billing.module';
     CreditModule,
     PaymentsModule,
     LoanPartnerModule,
-    BillingModule
+    BillingModule,
+    FeaturesModule
   ],
 
   controllers: [],
