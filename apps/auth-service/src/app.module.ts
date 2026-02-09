@@ -18,6 +18,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { CreditModule } from './credit/credit.module';
 import { PaymentsModule } from './payments/payments.module';
 import { LoanPartnerModule } from './loan-partner/loan-partner.module';
+import { BillingModule } from './billing/billing.module';
 
 
 @Module({
@@ -42,7 +43,8 @@ import { LoanPartnerModule } from './loan-partner/loan-partner.module';
     DevicesModule,
     CreditModule,
     PaymentsModule,
-    LoanPartnerModule
+    LoanPartnerModule,
+    BillingModule
   ],
 
   controllers: [],
@@ -54,4 +56,3 @@ import { LoanPartnerModule } from './loan-partner/loan-partner.module';
   ],
 })
 export class AppModule { }
-
