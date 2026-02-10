@@ -1,10 +1,25 @@
 # Database Migration Guide
 
 ## Issue
-Deployment failed because we're adding a required `merchantId` column to the `LoanPartner` table which already has 2 rows of data in production.
+Deployment failed because we're adding schema changes that may cause data loss:
+1. Adding required `merchantId` column to `LoanPartner` table (2 existing rows)
+2. Preserving `isActive` column (2 rows with non-null values)
+3. Adding unique constraints on `apiKey` and `merchantId+slug`
 
 ## Solution
-We've made `merchantId` optional in the schema to allow the deployment to succeed. After deployment, run the migration script to backfill existing data.
+We've made `merchantId` optional and preserved `isActive` field. The build command needs `--accept-data-loss` flag.
+
+## Render Build Command Update
+
+**Update your Render service build command to:**
+```bash
+bash scripts/render-build.sh
+```
+
+Or use the full command:
+```bash
+npm install && cd apps/auth-service && npx prisma generate --schema=../../packages/database/prisma/schema.prisma && npx prisma db push --schema=../../packages/database/prisma/schema.prisma --accept-data-loss && npm run build
+```
 
 ## Steps to Deploy
 

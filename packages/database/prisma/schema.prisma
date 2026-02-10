@@ -624,6 +624,7 @@ model LoanPartner {
   contactPhone String?
 
   // Configuration
+  isActive                Boolean @default(true) // Preserve existing production field
   status                  String  @default("ACTIVE") // ACTIVE, INACTIVE
   supportedRepaymentTypes Json? // ["DAILY", "WEEKLY", "MONTHLY"]
   maxTenure               Int     @default(12)
