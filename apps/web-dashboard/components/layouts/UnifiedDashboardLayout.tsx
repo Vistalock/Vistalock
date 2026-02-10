@@ -31,6 +31,7 @@ const MERCHANT_NAV: NavItem[] = [
     { title: 'Devices', href: '/dashboard/devices', icon: <Smartphone className="h-4 w-4" /> },
     { title: 'Loans', href: '/dashboard/loans', icon: <CreditCard className="h-4 w-4" /> },
     { title: 'Agents', href: '/dashboard/agents', icon: <UserCog className="h-4 w-4" /> },
+    { title: 'Loan Partners', href: '/dashboard/loan-partners', icon: <Users className="h-4 w-4" /> },
     { title: 'Reports', href: '/dashboard/reports', icon: <FileText className="h-4 w-4" /> },
     { title: 'Finance', href: '/dashboard/finance', icon: <BillingIcon className="h-4 w-4" /> },
     { title: 'Settings', href: '/dashboard/settings', icon: <Settings className="h-4 w-4" /> },
