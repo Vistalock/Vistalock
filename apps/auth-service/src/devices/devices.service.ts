@@ -1,6 +1,6 @@
 import { Injectable, ConflictException, BadRequestException, Logger } from '@nestjs/common';
 // @ts-ignore
-import { PrismaClient } from '@vistalock/database';
+import { PrismaClient, DeviceStatus } from '@vistalock/database';
 import { BillingService } from '../billing/billing.service';
 
 @Injectable()
@@ -80,7 +80,7 @@ export class DevicesService {
             // Billing successful - update device status
             const updatedDevice = await this.prisma.device.update({
                 where: { id: device.id },
-                data: { status: 'ACTIVE' },
+                data: { status: DeviceStatus.ACTIVE },
                 include: { enrollmentBilling: true }
             });
 
@@ -134,7 +134,7 @@ export class DevicesService {
             // Update device status
             await this.prisma.device.update({
                 where: { id: device.id },
-                data: { status: 'ACTIVE' }
+                data: { status: DeviceStatus.ACTIVE }
             });
         }
 

@@ -12,7 +12,7 @@ import {
 } from './dto';
 import { DeviceControlService } from '../device-control/device-control.service';
 import * as crypto from 'crypto';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class LoanPartnerService {
@@ -253,7 +253,7 @@ export class LoanPartnerService {
 
         // Generate JWT token for the loan partner
         // TODO: Implement JWT token generation
-        const accessToken = this.generateAccessToken(partner.id, partner.merchantId);
+        const accessToken = this.generateAccessToken(partner.id, partner.merchantId || '');
 
         this.logger.log(`Loan partner ${partner.name} authenticated successfully`);
 
@@ -263,8 +263,8 @@ export class LoanPartnerService {
             partner: {
                 id: partner.id,
                 name: partner.name,
-                merchantId: partner.merchantId,
-                merchantName: partner.merchant.email // TODO: Use merchant business name
+                merchantId: partner.merchantId || '',
+                merchantName: partner.merchant?.email || 'Unknown' // TODO: Use merchant business name
             }
         };
     }
@@ -318,7 +318,7 @@ export class LoanPartnerService {
                     role: 'CUSTOMER',
                     customerProfile: {
                         create: {
-                            fullName: 'Customer', // TODO: Get from dto
+                            // fullName: 'Customer', // TODO: Get from dto
                             phoneNumber: dto.customerPhone,
                             nin: dto.customerNin
                         }
@@ -334,7 +334,9 @@ export class LoanPartnerService {
                 merchantId: partner.merchantId,
                 loanPartnerId: partner.id,
                 productId: dto.productId,
-                deviceId: device.id,
+                device: {
+                    connect: { id: device.id }
+                },
                 loanAmount: dto.loanAmount,
                 downPayment: dto.downPayment,
                 tenure: dto.tenure,
@@ -383,8 +385,8 @@ export class LoanPartnerService {
         });
 
         // Unlock device if payment is current
-        if (dto.status === 'CURRENT' || dto.status === 'PAID') {
-            await this.lockService.unlockDevice(loan.deviceId, 'Payment received');
+        if ((dto.status === 'CURRENT' || dto.status === 'PAID') && loan.device) {
+            await this.lockService.unlockDevice(loan.device.id, 'Payment received');
         }
 
         this.logger.log(`Payment updated for loan ${dto.loanId}: ${dto.amountPaid}`);
@@ -414,8 +416,8 @@ export class LoanPartnerService {
         }
 
         // Take action based on days overdue
-        if (dto.actionRequired === 'LOCK_DEVICE') {
-            await this.lockService.lockDevice(loan.deviceId, `Payment overdue: ${dto.daysOverdue} days`);
+        if (dto.actionRequired === 'LOCK_DEVICE' && loan.device) {
+            await this.lockService.lockDevice(loan.device.id, `Payment overdue: ${dto.daysOverdue} days`);
         }
 
         this.logger.warn(`Loan ${dto.loanId} is ${dto.daysOverdue} days overdue`);
@@ -454,7 +456,9 @@ export class LoanPartnerService {
         });
 
         // Unlock device permanently
-        await this.lockService.unlockDevice(loan.deviceId, 'Loan completed');
+        if (loan.device) {
+            await this.lockService.unlockDevice(loan.device.id, 'Loan completed');
+        }
 
         this.logger.log(`Loan ${dto.loanId} closed successfully`);
 
@@ -479,7 +483,7 @@ export class LoanPartnerService {
 
         return this.prisma.device.findMany({
             where: {
-                merchantId: partner.merchantId,
+                merchantId: partner.merchantId || undefined,
                 loans: {
                     some: {
                         loanPartnerId: partnerId

@@ -101,7 +101,7 @@ export class WalletService {
     async deduct(merchantId: string, amount: number, description: string, reference?: string) {
         const wallet = await this.getOrCreateWallet(merchantId);
 
-        if (wallet.balance < amount) {
+        if (Number(wallet.balance) < amount) {
             throw new BadRequestException(`Insufficient wallet balance. Required: ₦${amount}, Available: ₦${wallet.balance}`);
         }
 
