@@ -108,4 +108,23 @@ export class DeviceControlService {
         });
         return { status: 'OK' };
     }
+
+    // === WRAPPERS FOR LOAN PARTNER SERVICE ===
+
+    async lockDevice(id: string, reason: string) {
+        // Find device by ID first since lockService uses IMEI internally
+        // In a real scenario, we might want to standardize on one ID/IMEI
+        // For now, lookup the device
+        const device = await this.prisma.device.findUnique({ where: { id } });
+        if (!device) throw new NotFoundException('Device not found');
+
+        return this.sendCommand(device.imei, 'LOCK', reason, 'SYSTEM');
+    }
+
+    async unlockDevice(id: string, reason: string) {
+        const device = await this.prisma.device.findUnique({ where: { id } });
+        if (!device) throw new NotFoundException('Device not found');
+
+        return this.sendCommand(device.imei, 'UNLOCK', reason, 'SYSTEM');
+    }
 }

@@ -246,6 +246,9 @@ export class LoanPartnerService {
         }
 
         // Verify API secret
+        if (!partner.apiSecret) {
+            throw new UnauthorizedException('Invalid API configuration');
+        }
         const isValid = await bcrypt.compare(dto.apiSecret, partner.apiSecret);
         if (!isValid) {
             throw new UnauthorizedException('Invalid API credentials');
@@ -280,6 +283,10 @@ export class LoanPartnerService {
 
         if (!partner) {
             throw new NotFoundException('Loan partner not found');
+        }
+
+        if (!partner.merchantId) {
+            throw new BadRequestException('Loan partner is not linked to a merchant');
         }
 
         // Find or create device
@@ -331,19 +338,20 @@ export class LoanPartnerService {
         const loan = await this.prisma.loan.create({
             data: {
                 userId: customer.id,
-                merchantId: partner.merchantId,
+                merchantId: partner.merchantId!,
                 loanPartnerId: partner.id,
                 productId: dto.productId,
-                device: {
-                    connect: { id: device.id }
-                },
+                deviceIMEI: device.imei,
+                customerNIN: dto.customerNin || '',
+                customerPhone: dto.customerPhone,
                 loanAmount: dto.loanAmount,
                 downPayment: dto.downPayment,
                 tenure: dto.tenure,
                 monthlyRepayment: dto.monthlyRepayment,
+                totalRepayment: dto.monthlyRepayment * dto.tenure,
+                outstandingAmount: dto.monthlyRepayment * dto.tenure,
                 interestRate: dto.interestRate || 0,
-                status: 'ACTIVE',
-                repaymentSchedule: dto.repaymentSchedule || []
+                status: 'ACTIVE'
             }
         });
 

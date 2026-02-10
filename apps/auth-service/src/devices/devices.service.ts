@@ -80,7 +80,7 @@ export class DevicesService {
             // Billing successful - update device status
             const updatedDevice = await this.prisma.device.update({
                 where: { id: device.id },
-                data: { status: DeviceStatus.ACTIVE },
+                data: { status: DeviceStatus.UNLOCKED },
                 include: { enrollmentBilling: true }
             });
 
@@ -134,7 +134,7 @@ export class DevicesService {
             // Update device status
             await this.prisma.device.update({
                 where: { id: device.id },
-                data: { status: DeviceStatus.ACTIVE }
+                data: { status: DeviceStatus.UNLOCKED }
             });
         }
 
