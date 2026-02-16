@@ -123,10 +123,11 @@ export default function SettingsPage() {
                     <div className="space-y-2">
                         <Label>API Secret</Label>
                         <div className="flex gap-2">
-                            type={showSecret ? "text" : "password"}
-                            value="********************************"
-                            disabled
-                            className="font-mono bg-gray-50"
+                            <Input
+                                type={showSecret ? "text" : "password"}
+                                value="********************************"
+                                disabled
+                                className="font-mono bg-gray-50"
                             />
                             <Button variant="outline" size="icon" onClick={() => setShowSecret(!showSecret)}>
                                 {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
