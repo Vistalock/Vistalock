@@ -16,9 +16,15 @@ async function bootstrap() {
   }));
 
   // Security
+  // Security
   app.use(helmet());
   app.enableCors({
-    origin: true,
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://vistalock-web-dashboard.vercel.app',
+      'https://vistalock-loan-partner-portal.vercel.app'
+    ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
