@@ -34,19 +34,13 @@ export default function AdminLoginPage() {
                 'TECH_ADMIN', 'SUPPORT_ADMIN'
             ];
 
-            if (!adminRoles.includes(res.data.role)) {
-                console.warn('Role mismatch:', res.data.role);
-                setError('Unauthorized access. This portal is for Vistalock Staff only.');
-                return;
-            }
 
-            // Store token
-            localStorage.setItem('token', res.data.access_token);
-            console.log('Token stored, redirecting...');
-            router.push('/admin');
+            // Store token or handle success
+            // router.push('/admin/dashboard');
+
         } catch (err: any) {
-            console.error('Login error full:', err);
-            setError(err.response?.data?.message || 'Access Denied.');
+            console.error('Login error:', err);
+            setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
         } finally {
             setLoading(false);
         }

@@ -1,39 +1,79 @@
+'use client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DollarSign, Activity, AlertTriangle, CheckCircle } from "lucide-react";
+import { DollarSign, Activity, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PartnerDashboard() {
-    // TODO: Fetch real stats from API
-    const stats = [
+    const { toast } = useToast();
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({
+        totalDisbursed: 0,
+        activeLoans: 0,
+        activeLocks: 0,
+        repaymentRate: 0
+    });
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const res = await api.get('/loan-partner-api/stats');
+                setStats(res.data);
+            } catch (error: any) {
+                console.error('Failed to fetch stats:', error);
+                toast({
+                    variant: "destructive",
+                    title: "Error",
+                    description: "Failed to load dashboard statistics",
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStats();
+    }, [toast]);
+
+    const statCards = [
         {
             title: "Total Disbursed",
-            value: "₦45,231,000",
-            description: "+20.1% from last month",
+            value: `₦${stats.totalDisbursed.toLocaleString()}`,
+            description: "Total volume financed",
             icon: DollarSign,
         },
         {
             title: "Active Loans",
-            value: "2,350",
-            description: "Currently performing",
+            value: stats.activeLoans.toLocaleString(),
+            description: "App currently performing",
             icon: Activity,
         },
         {
             title: "Active Locks",
-            value: "145",
+            value: stats.activeLocks.toLocaleString(),
             description: "Devices currently locked",
             icon: AlertTriangle,
         },
         {
             title: "Repayment Rate",
-            value: "94.2%",
-            description: "Healthy portfolio",
+            value: `${stats.repaymentRate}%`,
+            description: "Portfolio health",
             icon: CheckCircle
         }
     ];
 
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-full p-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {stats.map((stat) => (
+                {statCards.map((stat) => (
                     <Card key={stat.title}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">

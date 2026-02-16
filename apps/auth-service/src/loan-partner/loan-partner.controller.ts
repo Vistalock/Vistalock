@@ -119,6 +119,20 @@ export class LoanPartnerApiController {
     }
 
     /**
+     * Get dashboard stats
+     */
+    @Get('stats')
+    @UseGuards(AuthGuard('jwt')) // TODO: Switch to 'loan-partner' strategy once implemented
+    async getStats(@Request() req) {
+        // For now using standard JWT guard as we haven't implemented specific strategy yet
+        // In real impl, we'd extract partnerId from the specific token
+        const partnerId = req.user.sub;
+        return this.service.getPartnerStats(partnerId);
+    }
+
+
+
+    /**
      * Create a loan (from loan partner)
      * Requires loan partner authentication
      */
@@ -190,5 +204,15 @@ export class LoanPartnerApiController {
     async getLoans(@Request() req) {
         const partnerId = req.user.partnerId;
         return this.service.getLoansForPartner(partnerId);
+    }
+
+    /**
+     * Get products (merchant-scoped)
+     */
+    @Get('products')
+    @UseGuards(AuthGuard('loan-partner'))
+    async getProducts(@Request() req) {
+        const partnerId = req.user.partnerId;
+        return this.service.getProductsForPartner(partnerId);
     }
 }

@@ -46,7 +46,7 @@ export class AuthService {
     }
 
     async login(user: any) {
-        let tenantId = null;
+        let tenantId: string | null = null;
 
         if (user.role === 'MERCHANT') {
             tenantId = user.id;
@@ -61,11 +61,83 @@ export class AuthService {
             tenantId: tenantId
         };
 
+        const accessToken = this.jwtService.sign(payload);
+        const refreshToken = await this.generateRefreshToken(user.id);
+
         return {
-            access_token: this.jwtService.sign(payload),
+            accessToken,
+            refreshToken,
             role: user.role,
             tenantId: tenantId
         };
+    }
+
+    async generateRefreshToken(userId: string): Promise<string> {
+        const refreshToken = randomBytes(64).toString('hex');
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+
+        await this.usersService.storeRefreshToken(userId, refreshToken, expiresAt);
+        return refreshToken;
+    }
+
+    async refreshAccessToken(refreshToken: string) {
+        const tokenRecord = await this.usersService.findRefreshToken(refreshToken);
+
+        if (!tokenRecord) {
+            throw new UnauthorizedException('Invalid refresh token');
+        }
+
+        if (tokenRecord.revoked) {
+            // Revoke all tokens for this user (security reuse detection)
+            await this.usersService.revokeAllUserRefreshTokens(tokenRecord.userId);
+            throw new UnauthorizedException('Refresh token revoked');
+        }
+
+        if (new Date() > tokenRecord.expiresAt) {
+            throw new UnauthorizedException('Refresh token expired');
+        }
+
+        const user = tokenRecord.user;
+
+        if (!user.isActive) {
+            throw new UnauthorizedException('User account is inactive');
+        }
+
+        let tenantId: string | null = null;
+        if (user.role === 'MERCHANT') {
+            tenantId = user.id;
+        } else if (user.role === 'MERCHANT_AGENT' || user.role === 'CUSTOMER') {
+            tenantId = user.merchantId;
+        }
+
+        const payload = {
+            email: user.email,
+            sub: user.id,
+            role: user.role,
+            tenantId: tenantId
+        };
+
+        const newAccessToken = this.jwtService.sign(payload);
+
+        // Rotate Refresh Token
+        await this.usersService.revokeRefreshToken(refreshToken);
+        const newRefreshToken = await this.generateRefreshToken(user.id);
+
+        return {
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken
+        };
+    }
+
+    async logout(refreshToken: string) {
+        if (refreshToken) {
+            try {
+                await this.usersService.revokeRefreshToken(refreshToken);
+            } catch (e) {
+                // Ignore
+            }
+        }
     }
 
     async register(data: any) {

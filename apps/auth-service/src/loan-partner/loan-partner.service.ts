@@ -1,5 +1,6 @@
 import { Injectable, Logger, BadRequestException, NotFoundException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { JwtService } from '@nestjs/jwt';
 import {
     CreateLoanPartnerDto,
     UpdateLoanPartnerDto,
@@ -20,7 +21,8 @@ export class LoanPartnerService {
 
     constructor(
         private prisma: PrismaService,
-        private lockService: DeviceControlService
+        private lockService: DeviceControlService,
+        private jwtService: JwtService
     ) { }
 
     // ==================== MERCHANT LOAN PARTNER MANAGEMENT ====================
@@ -546,7 +548,83 @@ export class LoanPartnerService {
     }
 
     private generateAccessToken(partnerId: string, merchantId: string): string {
-        // TODO: Implement proper JWT token generation
-        return crypto.randomBytes(32).toString('hex');
+        const payload = {
+            sub: partnerId,
+            merchantId: merchantId,
+            role: 'LOAN_PARTNER',
+            type: 'access_token'
+        };
+        return this.jwtService.sign(payload, { expiresIn: '1h' }); // Short lived access token
+    }
+
+    /**
+     * Get dashboard stats for a loan partner
+     */
+    async getPartnerStats(partnerId: string) {
+        const partner = await this.prisma.loanPartner.findUnique({
+            where: { id: partnerId }
+        });
+
+        if (!partner) {
+            throw new NotFoundException('Loan partner not found');
+        }
+
+        const loans = await this.prisma.loan.findMany({
+            where: { loanPartnerId: partnerId }
+        });
+
+        const activeLoans = loans.filter(l => l.status === 'ACTIVE' || l.status === 'PENDING').length;
+        const totalDisbursed = loans.reduce((sum, l) => sum + l.loanAmount, 0);
+
+        // Count active locks (approximate by checking devices linked to active/overdue loans)
+        // Ideally we check device status directly, but this is a good proxy for now or we do a join
+        const activeLocks = await this.prisma.device.count({
+            where: {
+                loans: {
+                    some: {
+                        loanPartnerId: partnerId,
+                        status: { in: ['ACTIVE', 'DEFAULTED'] }
+                    }
+                },
+                status: 'LOCKED'
+            }
+        });
+
+        // Calculate repayment rate (completed / total) * 100
+        const completedLoans = loans.filter(l => l.status === 'COMPLETED').length;
+        const repaymentRate = loans.length > 0 ? (completedLoans / loans.length) * 100 : 0;
+
+        return {
+            totalDisbursed,
+            activeLoans,
+            activeLocks,
+            repaymentRate: parseFloat(repaymentRate.toFixed(1))
+        };
+    }
+
+    /**
+     * Get products available for a loan partner (belonging to their merchant)
+     */
+    async getProductsForPartner(partnerId: string) {
+        const partner = await this.prisma.loanPartner.findUnique({
+            where: { id: partnerId }
+        });
+
+        if (!partner || !partner.merchantId) {
+            throw new NotFoundException('Loan partner or merchant not found');
+        }
+
+        return this.prisma.product.findMany({
+            where: {
+                merchantId: partner.merchantId
+            },
+            select: {
+                id: true,
+                name: true,
+                price: true,
+                category: true
+            },
+            orderBy: { name: 'asc' }
+        });
     }
 }
