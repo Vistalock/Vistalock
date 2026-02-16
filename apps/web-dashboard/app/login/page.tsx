@@ -34,17 +34,11 @@ export default function LoginPage() {
                 'RISK_ADMIN', 'COMPLIANCE_ADMIN',
                 'TECH_ADMIN', 'SUPPORT_ADMIN'
             ];
+            // router.push('/dashboard');
 
-            if (adminRoles.includes(res.data.role)) {
-                setError('Staff accounts must use the internal portal.');
-                return;
-            }
-
-            login(res.data.access_token);
-            router.push('/dashboard');
         } catch (err: any) {
-            console.error(err);
-            setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+            console.error('Login error:', err);
+            setError(err.response?.data?.message || 'Login failed. Please try again.');
         } finally {
             setLoading(false);
         }

@@ -3,11 +3,13 @@ import { MerchantLoanPartnerController, LoanPartnerApiController } from './loan-
 import { LoanPartnerService } from './loan-partner.service';
 import { PrismaService } from '../prisma.service';
 import { DeviceControlModule } from '../device-control/device-control.module';
+import { AuthModule } from '../auth/auth.module';
+import { LoanPartnerStrategy } from './loan-partner.strategy';
 
 @Module({
-    imports: [DeviceControlModule],
+    imports: [DeviceControlModule, AuthModule],
     controllers: [MerchantLoanPartnerController, LoanPartnerApiController],
-    providers: [LoanPartnerService, PrismaService],
+    providers: [LoanPartnerService, PrismaService, LoanPartnerStrategy],
     exports: [LoanPartnerService]
 })
 export class LoanPartnerModule { }

@@ -313,20 +313,6 @@ export class UsersService implements OnModuleInit {
                 });
             }
 
-            // Batch insert installments? Installment model doesn't have createMany in standard SQLite/some DBs easily, but Postgres does.
-            // Using createMany
-            // Wait, Installment model in schema snippet viewed earlier:
-            /*
-            model Installment {
-              id String @id @default(uuid())
-              loanId String
-              ...
-            }
-            */
-            // createMany is supported. But wait, `installments` array has objects matching the CreateInput minus `id`?
-            // Yes.
-            // Note: InstallmentStatus enum needs to be imported or string literal used if it matches. 'PENDING' matches.
-
             // To be safe with `createMany` and Relations (Postgres supports it):
             await tx.installment.createMany({
                 data: installments.map(i => ({
@@ -343,6 +329,71 @@ export class UsersService implements OnModuleInit {
                 loanId: loan.id,
                 status: 'SUCCESS'
             };
+        });
+    }
+
+    /**
+     * Bind device to agent on first login
+     */
+    async bindAgentDevice(userId: string, deviceId: string) {
+        return this.prisma.agentProfile.update({
+            where: { userId },
+            data: {
+                deviceId,
+                lastLoginAt: new Date()
+            }
+        });
+    }
+
+    /**
+     * Log agent login attempt
+     */
+    async logAgentLogin(userId: string, deviceId: string | null, ipAddress: string | null, success: boolean, failReason: string | null) {
+        const prisma = new (await import('@vistalock/database')).PrismaClient();
+        try {
+            await prisma.agentLoginLog.create({
+                data: {
+                    userId,
+                    deviceId,
+                    ipAddress,
+                    success,
+                    failReason
+                }
+            });
+        } finally {
+            await prisma.$disconnect();
+        }
+    }
+
+    // Refresh Token Management
+    async storeRefreshToken(userId: string, token: string, expiresAt: Date) {
+        return this.prisma.refreshToken.create({
+            data: {
+                userId,
+                token,
+                expiresAt,
+            }
+        });
+    }
+
+    async findRefreshToken(token: string) {
+        return this.prisma.refreshToken.findUnique({
+            where: { token },
+            include: { user: true }
+        });
+    }
+
+    async revokeRefreshToken(token: string) {
+        return this.prisma.refreshToken.update({
+            where: { token },
+            data: { revoked: true }
+        });
+    }
+
+    async revokeAllUserRefreshTokens(userId: string) {
+        return this.prisma.refreshToken.updateMany({
+            where: { userId, revoked: false },
+            data: { revoked: true }
         });
     }
 }

@@ -1,4 +1,5 @@
-import { Controller, Request, Post, UseGuards, Body, Get, UnauthorizedException, Param, UseInterceptors, UploadedFiles, Delete } from '@nestjs/common';
+import { Controller, Request, Post, UseGuards, Body, Get, UnauthorizedException, Param, UseInterceptors, UploadedFiles, Delete, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { AuthService } from './auth.service';
@@ -17,7 +18,7 @@ export class AuthController {
     ) { }
 
     @Post('login')
-    async login(@Body() body: LoginDto, @Request() req: any) {
+    async login(@Body() body: LoginDto, @Request() req: any, @Res({ passthrough: true }) res: Response) {
         console.log(`Debug Login Attempt: ${body.email}`);
         const user = await this.authService.validateUser(body.email, body.password);
         if (!user) {
@@ -73,7 +74,60 @@ export class AuthController {
         }
 
         console.log('Debug Login Success:', user.email, 'Role:', user.role);
-        return this.authService.login(user);
+        const { accessToken, refreshToken, role, tenantId } = await this.authService.login(user);
+
+        res.cookie('access_token', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 15 * 60 * 1000, // 15m
+        });
+
+        res.cookie('refresh_token', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/auth',
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7d
+        });
+
+        return { role, tenantId };
+    }
+
+    @Post('refresh')
+    async refresh(@Request() req, @Res({ passthrough: true }) res: Response) {
+        const refreshToken = req.cookies['refresh_token'];
+        if (!refreshToken) throw new UnauthorizedException('No refresh token');
+
+        const tokens = await this.authService.refreshAccessToken(refreshToken);
+
+        res.cookie('access_token', tokens.accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 15 * 60 * 1000,
+        });
+
+        res.cookie('refresh_token', tokens.refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/auth',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+
+        return { success: true };
+    }
+
+    @Post('logout')
+    async logout(@Request() req, @Res({ passthrough: true }) res: Response) {
+        const refreshToken = req.cookies['refresh_token'];
+        await this.authService.logout(refreshToken);
+
+        res.clearCookie('access_token');
+        res.clearCookie('refresh_token', { path: '/auth' });
+
+        return { message: 'Logged out' };
     }
 
 

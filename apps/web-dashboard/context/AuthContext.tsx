@@ -26,42 +26,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
-    useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (token) {
-            try {
-                const decoded = jwtDecode<any>(token);
-                if (decoded.exp * 1000 > Date.now()) {
-                    setUser({
-                        userId: decoded.sub,
-                        email: decoded.email,
-                        role: decoded.role || 'MERCHANT',
-                        tenantId: decoded.tenantId
-                    });
-                } else {
-                    localStorage.removeItem("token");
-                }
-            } catch (e) {
-                localStorage.removeItem("token");
-            }
+    const fetchProfile = async () => {
+        try {
+            // Try to get profile (relies on cookie)
+            const { data } = await api.get("/auth/profile");
+            setUser({
+                userId: data.userId || data.sub, // Adjust based on profile endpoint response
+                email: data.email,
+                role: data.role,
+                tenantId: data.tenantId
+            });
+        } catch (error) {
+            console.log("Not authenticated or session expired");
+            setUser(null);
+            // Optionally try /auth/refresh here if profile fails but refresh might work?
+            // But usually profile endpoint should just work if cookie is valid.
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
+    };
+
+    useEffect(() => {
+        fetchProfile();
     }, []);
 
-    const login = (token: string) => {
-        localStorage.setItem("token", token);
-        const decoded = jwtDecode<any>(token);
-        setUser({
-            userId: decoded.sub,
-            email: decoded.email,
-            role: decoded.role || 'MERCHANT',
-            tenantId: decoded.tenantId
-        });
+    const login = async (loginResponse: any) => {
+        // loginResponse contains { role, tenantId } (from controller)
+        // We need to fetch full profile or just trust the response + maybe userId if returned
+        // Let's refetch profile to be sure and get full user object
+        await fetchProfile();
         router.push("/dashboard");
     };
 
-    const logout = () => {
-        localStorage.removeItem("token");
+    const logout = async () => {
+        try {
+            await api.post("/auth/logout");
+        } catch (e) {
+            console.error("Logout failed", e);
+        }
         setUser(null);
         router.push("/login");
     };

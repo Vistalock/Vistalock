@@ -5,12 +5,14 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { join } from 'path';
 import * as express from 'express';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(helmet());
   app.enableCors();
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+  app.use(cookieParser());
 
   // Serve static files from uploads directory
   const uploadsPath = process.env.UPLOAD_DIR || join(process.cwd(), 'uploads');
