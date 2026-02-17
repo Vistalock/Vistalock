@@ -30,6 +30,11 @@ export default function LoginPage() {
 
 
 
+            // Fallback: Save token to localStorage for Cross-Site Auth reliability
+            if (res.data.accessToken) {
+                localStorage.setItem('token', res.data.accessToken);
+            }
+
             // Call context login to update state and redirect
             await login(res.data);
 
