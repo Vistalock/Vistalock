@@ -28,7 +28,7 @@ export default function LoginPage() {
         try {
             const res = await api.post('/auth/login', { email, password });
 
-            const res = await api.post('/auth/login', { email, password });
+
 
             // Call context login to update state and redirect
             await login(res.data);
