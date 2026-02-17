@@ -28,13 +28,10 @@ export default function LoginPage() {
         try {
             const res = await api.post('/auth/login', { email, password });
 
-            // Security: Prevent Admins from logging in via public portal
-            const adminRoles = [
-                'ADMIN', 'SUPER_ADMIN', 'OPS_ADMIN',
-                'RISK_ADMIN', 'COMPLIANCE_ADMIN',
-                'TECH_ADMIN', 'SUPPORT_ADMIN'
-            ];
-            // router.push('/dashboard');
+            const res = await api.post('/auth/login', { email, password });
+
+            // Call context login to update state and redirect
+            await login(res.data);
 
         } catch (err: any) {
             console.error('Login error:', err);
