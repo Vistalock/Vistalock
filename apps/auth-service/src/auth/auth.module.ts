@@ -14,7 +14,7 @@ import { AdminAuditModule } from '../admin-audit/admin-audit.module';
         AdminAuditModule,
         PassportModule,
         JwtModule.register({
-            secret: 'secretKey', // TODO: Use env vars
+            secret: process.env.JWT_SECRET || 'secretKey',
             signOptions: { expiresIn: '60m' },
         }),
     ],
