@@ -28,7 +28,12 @@ export default function LoginPage() {
         try {
             const res = await api.post('/auth/login', { email, password });
 
-            const res = await api.post('/auth/login', { email, password });
+
+
+            // Fallback: Save token to localStorage for Cross-Site Auth reliability
+            if (res.data.accessToken) {
+                localStorage.setItem('token', res.data.accessToken);
+            }
 
             // Call context login to update state and redirect
             await login(res.data);
