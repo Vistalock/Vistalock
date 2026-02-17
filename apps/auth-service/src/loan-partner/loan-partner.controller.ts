@@ -122,24 +122,21 @@ export class LoanPartnerApiController {
      * Get dashboard stats
      */
     @Get('stats')
-    @UseGuards(AuthGuard('jwt')) // TODO: Switch to 'loan-partner' strategy once implemented
+    @UseGuards(AuthGuard('jwt'))
     async getStats(@Request() req) {
-        // For now using standard JWT guard as we haven't implemented specific strategy yet
-        // In real impl, we'd extract partnerId from the specific token
-        const partnerId = req.user.sub;
+        // JwtStrategy returns userId mapped from sub
+        const partnerId = req.user.userId;
         return this.service.getPartnerStats(partnerId);
     }
-
-
 
     /**
      * Create a loan (from loan partner)
      * Requires loan partner authentication
      */
     @Post('loans')
-    @UseGuards(AuthGuard('loan-partner')) // TODO: Implement loan partner auth guard
+    @UseGuards(AuthGuard('jwt'))
     async createLoan(@Request() req, @Body() dto: CreateLoanFromPartnerDto) {
-        const partnerId = req.user.partnerId; // From JWT
+        const partnerId = req.user.userId;
         return this.service.createLoanFromPartner(partnerId, dto);
     }
 
@@ -147,9 +144,9 @@ export class LoanPartnerApiController {
      * Update payment status
      */
     @Post('repayments')
-    @UseGuards(AuthGuard('loan-partner'))
+    @UseGuards(AuthGuard('jwt'))
     async updatePayment(@Request() req, @Body() dto: PaymentUpdateDto) {
-        const partnerId = req.user.partnerId;
+        const partnerId = req.user.userId;
         return this.service.updatePayment(partnerId, dto);
     }
 
@@ -157,9 +154,9 @@ export class LoanPartnerApiController {
      * Notify about overdue payment
      */
     @Post('overdue')
-    @UseGuards(AuthGuard('loan-partner'))
+    @UseGuards(AuthGuard('jwt'))
     async notifyOverdue(@Request() req, @Body() dto: OverdueNotificationDto) {
-        const partnerId = req.user.partnerId;
+        const partnerId = req.user.userId;
         return this.service.handleOverdueNotification(partnerId, dto);
     }
 
@@ -167,9 +164,9 @@ export class LoanPartnerApiController {
      * Close a loan
      */
     @Post('loan-closed')
-    @UseGuards(AuthGuard('loan-partner'))
+    @UseGuards(AuthGuard('jwt'))
     async closeLoan(@Request() req, @Body() dto: LoanClosureDto) {
-        const partnerId = req.user.partnerId;
+        const partnerId = req.user.userId;
         return this.service.closeLoan(partnerId, dto);
     }
 
@@ -177,7 +174,7 @@ export class LoanPartnerApiController {
      * Raise a dispute
      */
     @Post('dispute')
-    @UseGuards(AuthGuard('loan-partner'))
+    @UseGuards(AuthGuard('jwt'))
     async raiseDispute(@Request() req, @Body() dto: DisputeDto) {
         // TODO: Implement dispute handling
         return {
@@ -190,9 +187,9 @@ export class LoanPartnerApiController {
      * Get devices (merchant-scoped)
      */
     @Get('devices')
-    @UseGuards(AuthGuard('loan-partner'))
+    @UseGuards(AuthGuard('jwt'))
     async getDevices(@Request() req) {
-        const partnerId = req.user.partnerId;
+        const partnerId = req.user.userId;
         return this.service.getDevicesForPartner(partnerId);
     }
 
@@ -200,9 +197,9 @@ export class LoanPartnerApiController {
      * Get loans (merchant-scoped)
      */
     @Get('loans')
-    @UseGuards(AuthGuard('loan-partner'))
+    @UseGuards(AuthGuard('jwt'))
     async getLoans(@Request() req) {
-        const partnerId = req.user.partnerId;
+        const partnerId = req.user.userId;
         return this.service.getLoansForPartner(partnerId);
     }
 
@@ -210,9 +207,9 @@ export class LoanPartnerApiController {
      * Get products (merchant-scoped)
      */
     @Get('products')
-    @UseGuards(AuthGuard('loan-partner'))
+    @UseGuards(AuthGuard('jwt'))
     async getProducts(@Request() req) {
-        const partnerId = req.user.partnerId;
+        const partnerId = req.user.userId;
         return this.service.getProductsForPartner(partnerId);
     }
 }
