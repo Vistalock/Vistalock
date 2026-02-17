@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("token", token);
         localStorage.setItem("partner", JSON.stringify(partner));
         setUser(partner);
-        router.push("/dashboard");
+        router.push("/");
     };
 
     const logout = () => {
