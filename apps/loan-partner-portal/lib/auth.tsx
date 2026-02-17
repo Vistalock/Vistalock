@@ -10,6 +10,7 @@ interface LoanPartner {
     name: string;
     merchantId: string;
     merchantName: string;
+    contactEmail?: string;
 }
 
 interface AuthContextType {
