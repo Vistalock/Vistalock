@@ -8,8 +8,7 @@ import { api } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 
 export default function WalletPage() {
-    // Hardcoded partner ID for MVP
-    const PARTNER_ID = "partner-123";
+    const PARTNER_ID = "4ac9f212-46d5-4602-b8d6-797c95c1179d";
 
     const { data: wallet, isLoading } = useQuery({
         queryKey: ['partner-wallet'],
