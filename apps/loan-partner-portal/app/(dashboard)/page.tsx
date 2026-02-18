@@ -2,9 +2,24 @@
 
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CreditCard, AlertCircle, CheckCircle, TrendingUp, Users, Smartphone, Wallet } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import {
+    LayoutDashboard,
+    TrendingUp,
+    Users,
+    AlertTriangle,
+    ArrowUpRight,
+    ArrowDownRight,
+    Wallet,
+    CreditCard,
+    AlertCircle,
+    Smartphone,
+    CheckCircle
+} from "lucide-react";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 
 // Mock Data for Charts (Phase 1)
 const REPAYMENT_DATA = [
@@ -20,20 +35,23 @@ const REPAYMENT_DATA = [
 export default function DashboardPage() {
     const { user } = useAuth();
 
-    // Mock Stats
-    const stats = {
-        totalDisbursed: 15400000,
-        activeLoans: 142,
-        repaymentRate: 94.5,
-        defaultRate: 2.1,
-        activeLocks: 5,
-        avgTicketSize: 108000,
-    };
+    // Hardcoded partner ID for MVP
+    const PARTNER_ID = "partner-123";
+
+    const { data: stats, isLoading } = useQuery({
+        queryKey: ['partner-stats'],
+        queryFn: async () => {
+            const res = await api.get(`/loan-partner-api/stats?partnerId=${PARTNER_ID}`);
+            return res.data;
+        }
+    });
+
+    if (isLoading) return <div className="flex justify-center p-10"><Loader2 className="animate-spin" /></div>;
 
     const statCards = [
         {
             title: "Total Portfolio Value",
-            value: formatCurrency(stats.totalDisbursed),
+            value: formatCurrency(stats?.totalDisbursed || 0),
             sub: "+12% from last month",
             icon: Wallet,
             color: "text-blue-600",
@@ -41,7 +59,7 @@ export default function DashboardPage() {
         },
         {
             title: "Performance",
-            value: `${stats.repaymentRate}%`,
+            value: `${stats?.repaymentRate || 0}%`,
             sub: "Repayment Rate",
             icon: CheckCircle,
             color: "text-green-600",
@@ -49,7 +67,7 @@ export default function DashboardPage() {
         },
         {
             title: "Risk Level",
-            value: `${stats.defaultRate}%`,
+            value: `${stats?.defaultRate || 0}%`,
             sub: "Default Rate",
             icon: AlertCircle,
             color: "text-red-600",
@@ -57,8 +75,8 @@ export default function DashboardPage() {
         },
         {
             title: "Active Devices",
-            value: stats.activeLoans,
-            sub: `${stats.activeLocks} Locked`,
+            value: stats?.activeLoans || 0,
+            sub: `${stats?.activeLocks || 0} Locked`,
             icon: Smartphone,
             color: "text-purple-600",
             bg: "bg-purple-100"

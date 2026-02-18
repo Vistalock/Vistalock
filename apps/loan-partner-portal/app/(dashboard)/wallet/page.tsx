@@ -2,10 +2,29 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, ArrowDownLeft, Wallet, CreditCard } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, Wallet, CreditCard, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { api } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
 
 export default function WalletPage() {
+    // Hardcoded partner ID for MVP
+    const PARTNER_ID = "partner-123";
+
+    const { data: wallet, isLoading } = useQuery({
+        queryKey: ['partner-wallet'],
+        queryFn: async () => {
+            const res = await api.get(`/loan-partner-api/wallet?partnerId=${PARTNER_ID}`);
+            return res.data;
+        }
+    });
+
+    if (isLoading) return <div className="flex justify-center p-10"><Loader2 className="animate-spin" /></div>;
+
+    const balance = Number(wallet?.balance || 0);
+    const ledgerBalance = Number(wallet?.ledgerBalance || 0);
+    const transactions = wallet?.transactions || [];
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -32,8 +51,8 @@ export default function WalletPage() {
                         <Wallet className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{formatCurrency(2500000)}</div>
-                        <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                        <div className="text-2xl font-bold">{formatCurrency(balance)}</div>
+                        <p className="text-xs text-muted-foreground">Ledger Balance: {formatCurrency(ledgerBalance)}</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -42,7 +61,7 @@ export default function WalletPage() {
                         <CreditCard className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{formatCurrency(8500000)}</div>
+                        <div className="text-2xl font-bold">{formatCurrency(8500000)}</div> {/* Mock fallback for now */}
                         <p className="text-xs text-muted-foreground">Across 45 active loans</p>
                     </CardContent>
                 </Card>
@@ -63,47 +82,34 @@ export default function WalletPage() {
                     <CardTitle>Transaction Ledger</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <table className="w-full text-sm text-left">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3">Date</th>
-                                <th className="px-6 py-3">Description</th>
-                                <th className="px-6 py-3">Reference</th>
-                                <th className="px-6 py-3 text-right">Amount</th>
-                                <th className="px-6 py-3 text-right">Balance</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr className="bg-white border-b">
-                                <td className="px-6 py-4">2026-02-18</td>
-                                <td className="px-6 py-4 font-medium text-gray-900">Loan Disbursement</td>
-                                <td className="px-6 py-4 font-mono text-xs">LN-10293</td>
-                                <td className="px-6 py-4 text-right text-red-600">- ₦150,000</td>
-                                <td className="px-6 py-4 text-right font-medium">₦2,500,000</td>
-                            </tr>
-                            <tr className="bg-white border-b">
-                                <td className="px-6 py-4">2026-02-18</td>
-                                <td className="px-6 py-4 font-medium text-gray-900">Repayment Received</td>
-                                <td className="px-6 py-4 font-mono text-xs">PAY-9921</td>
-                                <td className="px-6 py-4 text-right text-green-600">+ ₦12,500</td>
-                                <td className="px-6 py-4 text-right font-medium">₦2,650,000</td>
-                            </tr>
-                            <tr className="bg-white border-b">
-                                <td className="px-6 py-4">2026-02-17</td>
-                                <td className="px-6 py-4 font-medium text-gray-900">Deposit (Bank Transfer)</td>
-                                <td className="px-6 py-4 font-mono text-xs">DEP-0012</td>
-                                <td className="px-6 py-4 text-right text-green-600">+ ₦1,000,000</td>
-                                <td className="px-6 py-4 text-right font-medium">₦2,637,500</td>
-                            </tr>
-                            <tr className="bg-white border-b">
-                                <td className="px-6 py-4">2026-02-17</td>
-                                <td className="px-6 py-4 font-medium text-gray-900">Commission Payout</td>
-                                <td className="px-6 py-4 font-mono text-xs">COM-1122</td>
-                                <td className="px-6 py-4 text-right text-green-600">+ ₦45,000</td>
-                                <td className="px-6 py-4 text-right font-medium">₦1,637,500</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    {transactions.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">No recent transactions found.</div>
+                    ) : (
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3">Date</th>
+                                    <th className="px-6 py-3">Description</th>
+                                    <th className="px-6 py-3">Reference</th>
+                                    <th className="px-6 py-3 text-right">Amount</th>
+                                    <th className="px-6 py-3 text-right">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {transactions.map((tx: any) => (
+                                    <tr key={tx.id} className="bg-white border-b">
+                                        <td className="px-6 py-4">{new Date(tx.createdAt).toLocaleDateString()}</td>
+                                        <td className="px-6 py-4 font-medium text-gray-900">{tx.type}</td>
+                                        <td className="px-6 py-4 font-mono text-xs">{tx.reference}</td>
+                                        <td className={`px-6 py-4 text-right font-medium ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                            {formatCurrency(tx.amount)}
+                                        </td>
+                                        <td className="px-6 py-4 text-right">{tx.status}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
                 </CardContent>
             </Card>
         </div>

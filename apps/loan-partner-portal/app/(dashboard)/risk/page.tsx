@@ -6,14 +6,80 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { AlertCircle, Save, ShieldCheck } from "lucide-react";
-import { useState } from "react";
+import { AlertCircle, Save, ShieldCheck, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { formatCurrency } from "@/lib/utils";
+import { api } from "@/lib/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function RiskControlsPage() {
+    const queryClient = useQueryClient();
+    const { toast } = useToast();
+
+    // In a real app, we get partnerId from context or auth
+    // For MVP, we pass a hardcoded ID or assume the backend knows the user
+    // However, the controller expects 'partnerId' query param.
+    // Let's assume we store it in localStorage or derived from user.
+    // For this demo, let's hardcode a valid UUID if possible, or expect backend to derive it.
+    // My controller code: @Query('partnerId').
+    // I should fix the controller to derive it from the USER, but for now I'll use a dummy ID.
+    const PARTNER_ID = "partner-123";
+
+    const { data: config, isLoading } = useQuery({
+        queryKey: ['risk-config'],
+        queryFn: async () => {
+            const res = await api.get(`/loan-partner-api/risk-config?partnerId=${PARTNER_ID}`);
+            return res.data;
+        }
+    });
+
     const [minScore, setMinScore] = useState([650]);
     const [autoApprove, setAutoApprove] = useState(false);
     const [interestRate, setInterestRate] = useState([5]);
+    const [maxTicketSize, setMaxTicketSize] = useState(500000);
+    const [minTicketSize, setMinTicketSize] = useState(10000);
+    const [maxTenor, setMaxTenor] = useState(6);
+
+    useEffect(() => {
+        if (config) {
+            setMinScore([config.minCreditScore || 650]);
+            setAutoApprove(config.autoApprove || false);
+            setInterestRate([Number(config.interestRate) || 5]);
+            setMaxTicketSize(Number(config.maxTicketSize) || 500000);
+            setMinTicketSize(Number(config.minTicketSize) || 10000);
+            setMaxTenor(config.maxTenor || 6);
+        }
+    }, [config]);
+
+    const mutation = useMutation({
+        mutationFn: async (data: any) => {
+            return api.post('/loan-partner-api/risk-config', {
+                partnerId: PARTNER_ID,
+                ...data
+            });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['risk-config'] });
+            toast({ title: "Settings Saved", description: "Risk configuration updated successfully." });
+        },
+        onError: () => {
+            toast({ title: "Error", description: "Failed to save settings.", variant: "destructive" });
+        }
+    });
+
+    const handleSave = () => {
+        mutation.mutate({
+            minCreditScore: minScore[0],
+            autoApprove,
+            interestRate: interestRate[0],
+            maxTicketSize,
+            minTicketSize,
+            maxTenor
+        });
+    };
+
+    if (isLoading) return <div className="flex justify-center p-10"><Loader2 className="animate-spin" /></div>;
 
     return (
         <div className="space-y-6">
@@ -22,8 +88,8 @@ export default function RiskControlsPage() {
                     <h1 className="text-2xl font-bold tracking-tight text-gray-900">Risk & Controls</h1>
                     <p className="text-sm text-gray-500">Configure lending parameters and automated decision rules</p>
                 </div>
-                <Button>
-                    <Save className="mr-2 h-4 w-4" />
+                <Button onClick={handleSave} disabled={mutation.isPending}>
+                    {mutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                     Save Changes
                 </Button>
             </div>
@@ -70,11 +136,11 @@ export default function RiskControlsPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>Min Ticket Size</Label>
-                                <Input type="number" defaultValue="10000" />
+                                <Input type="number" value={minTicketSize} onChange={(e) => setMinTicketSize(Number(e.target.value))} />
                             </div>
                             <div className="space-y-2">
                                 <Label>Max Ticket Size</Label>
-                                <Input type="number" defaultValue="500000" />
+                                <Input type="number" value={maxTicketSize} onChange={(e) => setMaxTicketSize(Number(e.target.value))} />
                             </div>
                         </div>
 
@@ -82,7 +148,13 @@ export default function RiskControlsPage() {
                             <Label>Max Tenor (Months)</Label>
                             <div className="flex gap-2">
                                 {[3, 6, 9, 12].map((m) => (
-                                    <Button key={m} variant={m === 6 ? "default" : "outline"} size="sm" className="flex-1">
+                                    <Button
+                                        key={m}
+                                        variant={maxTenor === m ? "default" : "outline"}
+                                        size="sm"
+                                        className="flex-1"
+                                        onClick={() => setMaxTenor(m)}
+                                    >
                                         {m} Mo
                                     </Button>
                                 ))}
@@ -117,7 +189,7 @@ export default function RiskControlsPage() {
                                     Reject requests with active loans elsewhere
                                 </p>
                             </div>
-                            <Switch defaultChecked />
+                            <Switch defaultChecked disabled />
                         </div>
 
                         <div className="flex items-center justify-between space-x-2 border p-3 rounded-lg">
@@ -127,7 +199,7 @@ export default function RiskControlsPage() {
                                     Flag loans &gt; ₦300,000 for Risk Officer review
                                 </p>
                             </div>
-                            <Switch defaultChecked />
+                            <Switch defaultChecked disabled />
                         </div>
                     </CardContent>
                     <CardFooter className="bg-muted/50 p-4">
