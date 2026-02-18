@@ -268,6 +268,7 @@ export class LoanPartnerService {
             partner: {
                 id: partner.id,
                 name: partner.name,
+                contactEmail: partner.contactEmail,
                 merchantId: partner.merchantId || '',
                 merchantName: partner.merchant?.email || 'Unknown' // TODO: Use merchant business name
             }
