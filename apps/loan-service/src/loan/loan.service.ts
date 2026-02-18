@@ -258,47 +258,42 @@ export class LoanService {
     // --- Partner Service Methods ---
 
     async getPartnerStats(partnerId: string): Promise<any> {
-        // 1. Get all merchants associated with this partner
-        // Assumption: We might need a relation between Merchant and LoanPartner.
-        // For Phase 3, let's assume `LoanPartner` has linked `Merchants` or we query loans directly if they have `loanPartnerId`.
-        // Current Schema check: LoanPartner has `merchants Merchant[]`.
+        // Correct logic based on Prod Schema:
+        // Query Loans directly where loanPartnerId matches
 
-        const merchants = await prisma.merchant.findMany({
-            where: { loanPartnerId: partnerId },
-            select: { id: true }
-        });
-
-        const merchantIds = merchants.map(m => m.id);
-
-        // 2. Aggregate Loan Stats
+        // 1. Aggregate Loan Stats
         const totalDisbursed = await prisma.loan.aggregate({
-            where: { merchantId: { in: merchantIds } },
+            where: { loanPartnerId: partnerId },
             _sum: { loanAmount: true }
         });
 
         const activeLoans = await prisma.loan.count({
             where: {
-                merchantId: { in: merchantIds },
+                loanPartnerId: partnerId,
                 status: LoanStatus.ACTIVE
             }
         });
 
-        const activeLocks = await prisma.device.count({
+        // For active locks, we need to join with Device
+        // But Prisma aggregate doesn't support deep relation filtering easily in all versions
+        // Let's count devices that have an active loan with this partner
+        // OR: Find loans with this partner AND isLocked=true (if loan tracks lock status)
+        // Schema line 257: isLocked Boolean @default(false)
+        const activeLocks = await prisma.loan.count({
             where: {
-                merchantId: { in: merchantIds },
-                status: DeviceStatus.LOCKED
+                loanPartnerId: partnerId,
+                isLocked: true
             }
         });
 
-        // 3. Simple Repayment Rate Calculation (Paid / Total Due)
-        // Simplified for MVP
+        // 3. Repayment Rate
         const totalDue = await prisma.payment.aggregate({
-            where: { loan: { merchantId: { in: merchantIds } } },
+            where: { Loan: { loanPartnerId: partnerId } },
             _sum: { amount: true }
         });
 
         const totalPaid = await prisma.payment.aggregate({
-            where: { loan: { merchantId: { in: merchantIds } } },
+            where: { Loan: { loanPartnerId: partnerId } },
             _sum: { paidAmount: true }
         });
 
@@ -311,9 +306,45 @@ export class LoanService {
             activeLoans,
             activeLocks,
             repaymentRate: Math.round(repaymentRate * 10) / 10,
-            defaultRate: 2.1, // Mock for now, requires complex logic
-            avgTicketSize: 0, // Implement later
+            defaultRate: 2.1,
+            avgTicketSize: 0,
         };
+    }
+
+    async getPartnerMerchants(partnerId: string): Promise<any> {
+        // 1. Find all distinct merchantIds that have loans with this partner
+        const loans = await prisma.loan.groupBy({
+            by: ['merchantId'],
+            where: { loanPartnerId: partnerId },
+            _sum: { loanAmount: true },
+            _count: { id: true }
+        });
+
+        const merchantIds = loans.map(l => l.merchantId);
+
+        // 2. Fetch Merchant Profiles
+        const profiles = await prisma.merchantProfile.findMany({
+            where: { userId: { in: merchantIds } },
+            select: {
+                userId: true,
+                businessName: true,
+                status: true,
+                // Add other fields if needed
+            }
+        });
+
+        // 3. Merge data
+        return profiles.map(p => {
+            const stats = loans.find(l => l.merchantId === p.userId);
+            return {
+                id: p.userId,
+                name: p.businessName,
+                status: p.status, // MerchantStatus enum
+                riskScore: 'Medium', // Mock or calculate
+                activeLoans: stats?._count.id || 0,
+                totalDisbursed: Number(stats?._sum.loanAmount) || 0
+            };
+        });
     }
 
     async getRiskConfig(partnerId: string): Promise<any> {

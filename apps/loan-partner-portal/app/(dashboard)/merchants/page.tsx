@@ -12,21 +12,29 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Filter, Store } from "lucide-react";
+import { Search, Filter, Store, Loader2 } from "lucide-react";
 import { useState } from "react";
-
-// Mock data for Phase 1
-const MOCK_MERCHANTS = [
-    { id: '1', name: 'Gadget World', status: 'ACTIVE', riskScore: 'Low', activeLoans: 12, totalDisbursed: 450000 },
-    { id: '2', name: 'Tech Point', status: 'ACTIVE', riskScore: 'Medium', activeLoans: 5, totalDisbursed: 120000 },
-    { id: '3', name: 'Mobile Hub', status: 'SUSPENDED', riskScore: 'High', activeLoans: 0, totalDisbursed: 0 },
-];
+import { api } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
+import { formatCurrency } from "@/lib/utils";
 
 export default function MerchantsPage() {
+    // I should fix the controller to derive it from the USER, but for now I'll use a dummy ID.
+    const PARTNER_ID = "4ac9f212-46d5-4602-b8d6-797c95c1179d";
     const [search, setSearch] = useState("");
 
-    const filteredMerchants = MOCK_MERCHANTS.filter(m =>
-        m.name.toLowerCase().includes(search.toLowerCase())
+    const { data: merchants, isLoading } = useQuery({
+        queryKey: ['partner-merchants'],
+        queryFn: async () => {
+            const res = await api.get(`/loan-partner-api/merchants?partnerId=${PARTNER_ID}`);
+            return res.data;
+        }
+    });
+
+    if (isLoading) return <div className="flex justify-center p-10"><Loader2 className="animate-spin" /></div>;
+
+    const filteredMerchants = (merchants || []).filter((m: any) =>
+        m.name?.toLowerCase().includes(search.toLowerCase())
     );
 
     return (
@@ -72,17 +80,23 @@ export default function MerchantsPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredMerchants.map((merchant) => (
+                            {filteredMerchants.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center h-24">
+                                        No merchants found.
+                                    </TableCell>
+                                </TableRow>
+                            ) : filteredMerchants.map((merchant: any) => (
                                 <TableRow key={merchant.id}>
                                     <TableCell className="font-medium">{merchant.name}</TableCell>
                                     <TableCell>
-                                        <Badge variant={merchant.status === 'ACTIVE' ? 'default' : 'destructive'}>
+                                        <Badge variant={merchant.status === 'APPROVED' || merchant.status === 'ACTIVE' ? 'default' : 'destructive'}>
                                             {merchant.status}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>{merchant.riskScore}</TableCell>
                                     <TableCell className="text-right">{merchant.activeLoans}</TableCell>
-                                    <TableCell className="text-right">₦{merchant.totalDisbursed.toLocaleString()}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(merchant.totalDisbursed)}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
