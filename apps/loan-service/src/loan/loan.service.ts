@@ -255,4 +255,107 @@ export class LoanService {
             orderBy: { createdAt: 'desc' }
         });
     }
+    // --- Partner Service Methods ---
+
+    async getPartnerStats(partnerId: string): Promise<any> {
+        // 1. Get all merchants associated with this partner
+        // Assumption: We might need a relation between Merchant and LoanPartner.
+        // For Phase 3, let's assume `LoanPartner` has linked `Merchants` or we query loans directly if they have `loanPartnerId`.
+        // Current Schema check: LoanPartner has `merchants Merchant[]`.
+
+        const merchants = await prisma.merchant.findMany({
+            where: { loanPartnerId: partnerId },
+            select: { id: true }
+        });
+
+        const merchantIds = merchants.map(m => m.id);
+
+        // 2. Aggregate Loan Stats
+        const totalDisbursed = await prisma.loan.aggregate({
+            where: { merchantId: { in: merchantIds } },
+            _sum: { loanAmount: true }
+        });
+
+        const activeLoans = await prisma.loan.count({
+            where: {
+                merchantId: { in: merchantIds },
+                status: LoanStatus.ACTIVE
+            }
+        });
+
+        const activeLocks = await prisma.device.count({
+            where: {
+                merchantId: { in: merchantIds },
+                status: DeviceStatus.LOCKED
+            }
+        });
+
+        // 3. Simple Repayment Rate Calculation (Paid / Total Due)
+        // Simplified for MVP
+        const totalDue = await prisma.payment.aggregate({
+            where: { loan: { merchantId: { in: merchantIds } } },
+            _sum: { amount: true }
+        });
+
+        const totalPaid = await prisma.payment.aggregate({
+            where: { loan: { merchantId: { in: merchantIds } } },
+            _sum: { paidAmount: true }
+        });
+
+        const repaymentRate = totalDue._sum.amount && Number(totalDue._sum.amount) > 0
+            ? (Number(totalPaid._sum.paidAmount) || 0) / Number(totalDue._sum.amount) * 100
+            : 0;
+
+        return {
+            totalDisbursed: totalDisbursed._sum.loanAmount || 0,
+            activeLoans,
+            activeLocks,
+            repaymentRate: Math.round(repaymentRate * 10) / 10,
+            defaultRate: 2.1, // Mock for now, requires complex logic
+            avgTicketSize: 0, // Implement later
+        };
+    }
+
+    async getRiskConfig(partnerId: string): Promise<any> {
+        let config = await prisma.riskConfig.findUnique({
+            where: { loanPartnerId: partnerId }
+        });
+
+        if (!config) {
+            // Create default if not exists
+            config = await prisma.riskConfig.create({
+                data: { loanPartnerId: partnerId }
+            });
+        }
+        return config;
+    }
+
+    async updateRiskConfig(partnerId: string, data: any): Promise<any> {
+        return prisma.riskConfig.upsert({
+            where: { loanPartnerId: partnerId },
+            update: data,
+            create: { ...data, loanPartnerId: partnerId }
+        });
+    }
+
+    async getPartnerWallet(partnerId: string): Promise<any> {
+        let wallet = await prisma.loanPartnerWallet.findUnique({
+            where: { loanPartnerId: partnerId }
+        });
+
+        if (!wallet) {
+            wallet = await prisma.loanPartnerWallet.create({
+                data: { loanPartnerId: partnerId }
+            });
+        }
+
+        // Fetch recent transactions (Mock for MVP if Transaction model doesn't support PartnerWallet yet)
+        // We'll need to update Transaction model to link to LoanPartnerWallet in future phases.
+        const transactions: any[] = [];
+
+        return {
+            ...wallet,
+            transactions
+        };
+    }
 }

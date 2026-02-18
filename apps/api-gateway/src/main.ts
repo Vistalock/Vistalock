@@ -87,6 +87,14 @@ async function bootstrap() {
     logger: console,
   }));
 
+  // Loan Partner routes
+  app.use('/loan-partner-api', createProxyMiddleware({
+    target: process.env.LOAN_SERVICE_URL || 'http://127.0.0.1:3003',
+    changeOrigin: true,
+    pathRewrite: { '^/loan-partner-api': '/partner' },
+    logger: console,
+  }));
+
   const port = process.env.PORT || 3000;
   await app.listen(port);
   console.log(`[Gateway] Running on port ${port}`);
