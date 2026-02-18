@@ -19,7 +19,16 @@ enum Role {
   SUPPORT_ADMIN // Customer Support
   MERCHANT
   MERCHANT_AGENT // New: For sub-accounts
+  LOAN_PARTNER // New: For Loan Partner Users
   CUSTOMER
+}
+
+enum LoanPartnerRole {
+  ADMIN
+  ANALYST
+  RISK_OFFICER // Phase 2
+  COLLECTIONS_MANAGER // Phase 2
+  FINANCE_OFFICER // Phase 2
 }
 
 enum SubscriptionPlan {
@@ -63,6 +72,12 @@ model User {
 
   // Merchant's Loan Partners
   merchantLoanPartners LoanPartner[] @relation("MerchantLoanPartners")
+
+  // Loan Partner User Profile
+  loanPartnerProfile LoanPartnerUser?
+
+  // Disputes Raised
+  disputes Dispute[] @relation("MerchantDisputes")
 
   // Audit
   auditLogs      AuditLog[]
@@ -558,6 +573,7 @@ model Loan {
   // Relations
   payments     Payment[]
   transactions Transaction[]
+  Dispute      Dispute[]
 
   @@index([userId])
   @@index([customerNIN])
@@ -590,8 +606,9 @@ model Payment {
   reference     String? // Payment reference
 
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Dispute   Dispute[]
 
   @@index([loanId])
   @@index([status])
@@ -635,11 +652,109 @@ model LoanPartner {
   updatedAt DateTime @updatedAt
 
   // Relations
+  // Relations
   loans       Loan[]
   products    Product[]
   webhookLogs WebhookLog[]
+  users       LoanPartnerUser[] // Relation to users managing this partner
+  
+  // Phase 2 Relations
+  riskConfig  RiskConfig?
+  wallet      LoanPartnerWallet?
 
   @@unique([merchantId, slug]) // Slug unique per merchant
+  @@index([merchantId])
+  @@index([status])
+}
+
+model LoanPartnerUser {
+  id            String          @id @default(uuid())
+  userId        String          @unique
+  user          User            @relation(fields: [userId], references: [id])
+  
+  loanPartnerId String
+  loanPartner   LoanPartner     @relation(fields: [loanPartnerId], references: [id])
+  
+  role          LoanPartnerRole @default(ANALYST)
+  isActive      Boolean         @default(true)
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([loanPartnerId])
+  @@index([userId])
+}
+
+model RiskConfig {
+  id            String      @id @default(uuid())
+  loanPartnerId String      @unique
+  loanPartner   LoanPartner @relation(fields: [loanPartnerId], references: [id])
+
+  // Limits
+  maxTicketSize Decimal     @default(500000) @db.Decimal(12, 2)
+  minTicketSize Decimal     @default(10000) @db.Decimal(12, 2)
+  maxTenor      Int         @default(6) // Months
+  
+  // Rules
+  minCreditScore Int        @default(600)
+  autoApprove    Boolean    @default(false)
+  autoReject     Boolean    @default(true)
+  
+  // Interest
+  interestRate  Decimal     @default(5.0) @db.Decimal(5, 2) // Monthly query
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model LoanPartnerWallet {
+  id            String      @id @default(uuid())
+  loanPartnerId String      @unique
+  loanPartner   LoanPartner @relation(fields: [loanPartnerId], references: [id])
+
+  balance       Decimal     @default(0) @db.Decimal(15, 2)
+  ledgerBalance Decimal     @default(0) @db.Decimal(15, 2)
+  currency      String      @default("NGN")
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+model Dispute {
+  id String @id @default(uuid())
+
+  // Pivot: Can dispute a Loan or a specific Payment
+  loanId    String
+  loan      Loan     @relation(fields: [loanId], references: [id])
+  paymentId String?
+  payment   Payment? @relation(fields: [paymentId], references: [id])
+
+  // Context
+  merchantId String
+  merchant   User   @relation("MerchantDisputes", fields: [merchantId], references: [id])
+
+  // Details
+  reason       String
+  description  String? @db.Text
+  evidenceUrls Json? // Array of URLs
+
+  status     DisputeStatus @default(OPEN)
+  resolution String?       @db.Text
+  resolvedBy String? // ID of user who resolved it
+  resolvedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([loanId])
   @@index([merchantId])
   @@index([status])
 }

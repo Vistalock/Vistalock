@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Smartphone, CreditCard, Settings, Shield, LogOut, PanelLeft, User, Menu } from 'lucide-react';
+import { LayoutDashboard, Smartphone, CreditCard, Settings, Shield, LogOut, PanelLeft, User, Menu, Bell, TrendingUp, Store, FileText } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -26,8 +26,15 @@ type NavItem = {
 
 const PARTNER_NAV: NavItem[] = [
     { title: 'Overview', href: '/', icon: <LayoutDashboard className="h-4 w-4" /> },
+    { title: 'Analytics', href: '/analytics', icon: <TrendingUp className="h-4 w-4" /> },
+    { title: 'Merchants', href: '/merchants', icon: <Store className="h-4 w-4" /> },
     { title: 'Loans', href: '/loans', icon: <CreditCard className="h-4 w-4" /> },
+    { title: 'Risk Controls', href: '/risk', icon: <Shield className="h-4 w-4" /> },
+    { title: 'Repayments', href: '/repayments', icon: <TrendingUp className="h-4 w-4" /> },
+    { title: 'Wallet', href: '/wallet', icon: <CreditCard className="h-4 w-4" /> },
     { title: 'Devices', href: '/devices', icon: <Smartphone className="h-4 w-4" /> },
+    { title: 'Disputes', href: '/disputes', icon: <Shield className="h-4 w-4" /> },
+    { title: 'Reports', href: '/reports', icon: <FileText className="h-4 w-4" /> },
     { title: 'Settings', href: '/settings', icon: <Settings className="h-4 w-4" /> },
 ];
 
@@ -106,32 +113,35 @@ export default function UnifiedDashboardLayout({ children, userEmail }: UnifiedD
                         <PanelLeft className="h-5 w-5 text-muted-foreground hover:text-foreground" />
                     </button>
 
-                    {/* Mobile Menu Trigger */}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <button className="sm:hidden -ml-2 p-2">
-                                <Menu className="h-6 w-6" />
-                            </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-[200px] sm:hidden">
-                            {navItems.map((item) => (
-                                <Link key={item.href} href={item.href}>
-                                    <DropdownMenuItem>
-                                        {item.icon}
-                                        <span className="ml-2">{item.title}</span>
-                                    </DropdownMenuItem>
-                                </Link>
-                            ))}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={handleLogout} className="text-red-500">
-                                <LogOut className="h-4 w-4 mr-2" />
-                                <span>Logout</span>
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-
+                    <div className="relative flex-1 md:grow-0">
+                        <div className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+                        </div>
+                        <input
+                            type="search"
+                            placeholder="Search loans, merchants..."
+                            className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px] h-9 border text-sm outline-none focus:ring-2 focus:ring-primary/50"
+                        />
+                    </div>
 
                     <div className="ml-auto flex items-center gap-4">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className="text-muted-foreground hover:text-foreground relative">
+                                    <span className="sr-only">Notifications</span>
+                                    <Bell className="h-5 w-5" />
+                                    <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-600 border border-white"></span>
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-80">
+                                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <div className="p-4 text-sm text-center text-muted-foreground">
+                                    No new notifications
+                                </div>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs ring-2 ring-background cursor-pointer hover:bg-primary/30 transition-colors">
@@ -148,6 +158,15 @@ export default function UnifiedDashboardLayout({ children, userEmail }: UnifiedD
                                     </div>
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
+                                <DropdownMenuGroup>
+                                    <Link href="/settings">
+                                        <DropdownMenuItem className="cursor-pointer">
+                                            <Settings className="mr-2 h-4 w-4" />
+                                            <span>Settings</span>
+                                        </DropdownMenuItem>
+                                    </Link>
+                                </DropdownMenuGroup>
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500 focus:bg-red-50">
                                     <LogOut className="mr-2 h-4 w-4" />
                                     <span>Log out</span>
@@ -158,7 +177,19 @@ export default function UnifiedDashboardLayout({ children, userEmail }: UnifiedD
                     </div>
                 </header>
                 <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 md:gap-8">
-                    {/* Page Title & Breadcrumbs could go here */}
+                    {/* Page Title & Actions Area */}
+                    <div className="flex items-center justify-between space-y-2">
+                        <h2 className="text-3xl font-bold tracking-tight">{navItems.find(i => i.href === pathname || (i.href !== '/' && pathname?.startsWith(i.href)))?.title || 'Dashboard'}</h2>
+                        <div className="flex items-center space-x-2">
+                            <button className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2">
+                                <span>Recent Range</span>
+                            </button>
+                            <button className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2">
+                                <FileText className="mr-2 h-4 w-4" />
+                                Download Report
+                            </button>
+                        </div>
+                    </div>
                     {children}
                 </main>
             </div>
