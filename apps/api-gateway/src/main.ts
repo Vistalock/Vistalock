@@ -43,19 +43,6 @@ async function bootstrap() {
     target: process.env.AUTH_SERVICE_URL || 'http://127.0.0.1:3001',
     changeOrigin: true,
     pathRewrite: { '^/': '/auth/' }, // Prepend /auth back after middleware strips it
-    logger: console,
-    on: {
-      proxyReq: (proxyReq, req) => {
-        console.log(`[Proxy] Auth: ${req.method} ${req.originalUrl || req.url}`);
-      },
-      error: (err, req, res) => {
-        console.error(`[Proxy] Error: ${err.message}`);
-        const response = res as Response;
-        if (!response.headersSent) {
-          response.status(502).send('Bad Gateway: Unable to connect to upstream service.');
-        }
-      }
-    }
   }));
 
   // Admin routes  
@@ -63,28 +50,24 @@ async function bootstrap() {
     target: process.env.AUTH_SERVICE_URL || 'http://127.0.0.1:3001',
     changeOrigin: true,
     pathRewrite: { '^/': '/admin/' }, // Prepend /admin back after middleware strips it
-    logger: console,
   }));
 
   // Customer routes
   app.use('/customers', createProxyMiddleware({
     target: process.env.AUTH_SERVICE_URL || 'http://127.0.0.1:3001',
     changeOrigin: true,
-    logger: console,
   }));
 
   // Device routes
   app.use('/devices', createProxyMiddleware({
     target: process.env.DEVICE_SERVICE_URL || 'http://127.0.0.1:3002',
     changeOrigin: true,
-    logger: console,
   }));
 
   // Loan routes
   app.use('/loans', createProxyMiddleware({
     target: process.env.LOAN_SERVICE_URL || 'http://127.0.0.1:3003',
     changeOrigin: true,
-    logger: console,
   }));
 
   // Loan Partner routes
@@ -92,7 +75,12 @@ async function bootstrap() {
     target: process.env.LOAN_SERVICE_URL || 'http://127.0.0.1:3003',
     changeOrigin: true,
     pathRewrite: { '^/loan-partner-api': '/partner' },
-    logger: console,
+  }));
+
+  // Agent routes (Phase 8)
+  app.use('/agents', createProxyMiddleware({
+    target: process.env.AUTH_SERVICE_URL || 'http://127.0.0.1:3001',
+    changeOrigin: true,
   }));
 
   const port = process.env.PORT || 3000;
