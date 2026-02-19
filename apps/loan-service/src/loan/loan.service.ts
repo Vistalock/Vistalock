@@ -4,7 +4,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-floating-promises */
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException, Inject } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException, Inject, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { prisma, LoanStatus, PaymentStatus, DeviceStatus, KycStatus, TransactionStatus, TransactionType } from '@vistalock/database';
 import { PaymentProvider } from '../payments/payment.interface';
 import { NotificationService } from '../notifications/notification.service';
@@ -14,7 +15,31 @@ export class LoanService {
     constructor(
         @Inject('PaymentProvider') private readonly paymentProvider: PaymentProvider,
         private readonly notificationService: NotificationService,
+        private readonly jwtService: JwtService,
     ) { }
+
+    async validatePartner(apiKey: string, apiSecret: string): Promise<any> {
+        const partner = await prisma.loanPartner.findUnique({
+            where: { apiKey }
+        });
+
+        if (!partner || partner.apiSecret !== apiSecret) {
+            throw new UnauthorizedException('Invalid API Credentials');
+        }
+
+        const payload = { sub: partner.id, role: 'LOAN_PARTNER', partnerId: partner.id };
+        const accessToken = this.jwtService.sign(payload);
+
+        return {
+            accessToken,
+            partner: {
+                id: partner.id,
+                name: partner.name,
+                email: partner.contactEmail,
+                role: 'LOAN_PARTNER'
+            }
+        };
+    }
 
     async initiateRepayment(loanId: string, amount: number): Promise<any> {
         const loan = await this.getLoan(loanId);
@@ -288,21 +313,21 @@ export class LoanService {
 
         // 3. Repayment Rate
         const totalDue = await prisma.payment.aggregate({
-            where: { Loan: { loanPartnerId: partnerId } },
+            where: { loan: { loanPartnerId: partnerId } },
             _sum: { amount: true }
         });
 
         const totalPaid = await prisma.payment.aggregate({
-            where: { Loan: { loanPartnerId: partnerId } },
+            where: { loan: { loanPartnerId: partnerId } },
             _sum: { paidAmount: true }
         });
 
         const repaymentRate = totalDue._sum.amount && Number(totalDue._sum.amount) > 0
-            ? (Number(totalPaid._sum.paidAmount) || 0) / Number(totalDue._sum.amount) * 100
+            ? (Number(totalPaid._sum.paidAmount ?? 0) || 0) / Number(totalDue._sum.amount) * 100
             : 0;
 
         return {
-            totalDisbursed: totalDisbursed._sum.loanAmount || 0,
+            totalDisbursed: totalDisbursed._sum.loanAmount ?? 0,
             activeLoans,
             activeLocks,
             repaymentRate: Math.round(repaymentRate * 10) / 10,

@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { Role } from '@prisma/client';
+import { Public } from '../auth/public.decorator';
 
 @Controller('partner')
 @UseGuards(RolesGuard)
@@ -12,6 +13,13 @@ export class LoanPartnerController {
         private readonly loanService: LoanService,
         private readonly configService: ConfigService,
     ) { }
+
+    @Post('auth/login')
+    @Public()
+    login(@Body() body: { apiKey: string; apiSecret: string }) {
+        if (!body.apiKey || !body.apiSecret) throw new ForbiddenException('Credentials required');
+        return this.loanService.validatePartner(body.apiKey, body.apiSecret);
+    }
 
     @Get('stats')
     @Roles(Role.LOAN_PARTNER)
