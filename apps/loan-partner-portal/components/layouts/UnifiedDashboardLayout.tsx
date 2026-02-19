@@ -22,20 +22,58 @@ type NavItem = {
     title: string;
     href: string;
     icon: React.ReactNode;
+    viewOnly?: boolean;
 };
 
-const PARTNER_NAV: NavItem[] = [
-    { title: 'Overview', href: '/', icon: <LayoutDashboard className="h-4 w-4" /> },
-    { title: 'Analytics', href: '/analytics', icon: <TrendingUp className="h-4 w-4" /> },
-    { title: 'Merchants', href: '/merchants', icon: <Store className="h-4 w-4" /> },
-    { title: 'Loans', href: '/loans', icon: <CreditCard className="h-4 w-4" /> },
-    { title: 'Risk Controls', href: '/risk', icon: <Shield className="h-4 w-4" /> },
-    { title: 'Repayments', href: '/repayments', icon: <TrendingUp className="h-4 w-4" /> },
-    { title: 'Wallet', href: '/wallet', icon: <CreditCard className="h-4 w-4" /> },
-    { title: 'Devices', href: '/devices', icon: <Smartphone className="h-4 w-4" /> },
-    { title: 'Disputes', href: '/disputes', icon: <Shield className="h-4 w-4" /> },
-    { title: 'Reports', href: '/reports', icon: <FileText className="h-4 w-4" /> },
-    { title: 'Settings', href: '/settings', icon: <Settings className="h-4 w-4" /> },
+type NavGroup = {
+    group: string;
+    items: NavItem[];
+};
+
+const PARTNER_NAV: NavGroup[] = [
+    {
+        group: 'Dashboard',
+        items: [
+            { title: 'Overview', href: '/', icon: <LayoutDashboard className="h-4 w-4" /> },
+        ]
+    },
+    {
+        group: 'Lending',
+        items: [
+            { title: 'Loan Applications', href: '/applications', icon: <FileText className="h-4 w-4" /> },
+            { title: 'Active Loans', href: '/loans', icon: <CreditCard className="h-4 w-4" /> },
+            { title: 'Repayments', href: '/repayments', icon: <TrendingUp className="h-4 w-4" /> },
+            { title: 'Disputes', href: '/disputes', icon: <Shield className="h-4 w-4" /> },
+        ]
+    },
+    {
+        group: 'Agents',
+        items: [
+            { title: 'All Agents', href: '/agents', icon: <User className="h-4 w-4" />, viewOnly: true },
+            { title: 'Commissions', href: '/commissions', icon: <CreditCard className="h-4 w-4" /> },
+        ]
+    },
+    {
+        group: 'Risk & Devices',
+        items: [
+            { title: 'Portfolio Risk', href: '/risk', icon: <Shield className="h-4 w-4" /> },
+            { title: 'Device Monitoring', href: '/devices', icon: <Smartphone className="h-4 w-4" />, viewOnly: true },
+        ]
+    },
+    {
+        group: 'Reports',
+        items: [
+            { title: 'Analytics', href: '/reports', icon: <TrendingUp className="h-4 w-4" /> },
+        ]
+    },
+    {
+        group: 'System',
+        items: [
+            { title: 'API & Integrations', href: '/integrations', icon: <CreditCard className="h-4 w-4" /> },
+            { title: 'Team Management', href: '/team', icon: <User className="h-4 w-4" /> },
+            { title: 'Settings', href: '/settings', icon: <Settings className="h-4 w-4" /> },
+        ]
+    }
 ];
 
 interface UnifiedDashboardLayoutProps {
@@ -69,25 +107,43 @@ export default function UnifiedDashboardLayout({ children, userEmail }: UnifiedD
                         {!isSidebarCollapsed && <span>VistaLock Partner</span>}
                     </div>
                 </div>
-                <nav className="flex flex-col gap-2 px-2 py-4 flex-1">
-                    {navItems.map((item) => {
-                        const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
-                        return (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={cn(
-                                    "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
-                                    isActive ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground",
-                                    isSidebarCollapsed && "justify-center px-2"
-                                )}
-                                title={isSidebarCollapsed ? item.title : undefined}
-                            >
-                                {item.icon}
-                                {!isSidebarCollapsed && item.title}
-                            </Link>
-                        );
-                    })}
+                <nav className="flex flex-col gap-4 px-2 py-4 flex-1 overflow-y-auto">
+                    {navItems.map((group, groupIndex) => (
+                        <div key={group.group} className="flex flex-col gap-1">
+                            {!isSidebarCollapsed && (
+                                <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                                    {group.group}
+                                </h3>
+                            )}
+                            {isSidebarCollapsed && groupIndex > 0 && <div className="h-px bg-border mx-2 my-1" />}
+
+                            {group.items.map((item) => {
+                                const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
+                                return (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        className={cn(
+                                            "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
+                                            isActive ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground",
+                                            isSidebarCollapsed && "justify-center px-2"
+                                        )}
+                                        title={isSidebarCollapsed ? item.title : undefined}
+                                    >
+                                        {item.icon}
+                                        {!isSidebarCollapsed && (
+                                            <div className="flex flex-1 items-center justify-between">
+                                                <span>{item.title}</span>
+                                                {item.viewOnly && (
+                                                    <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">View</span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    ))}
                 </nav>
 
                 {/* Logout Section */}
@@ -179,7 +235,9 @@ export default function UnifiedDashboardLayout({ children, userEmail }: UnifiedD
                 <main className="flex flex-1 flex-col gap-4 p-4 sm:px-6 md:gap-8">
                     {/* Page Title & Actions Area */}
                     <div className="flex items-center justify-between space-y-2">
-                        <h2 className="text-3xl font-bold tracking-tight">{navItems.find(i => i.href === pathname || (i.href !== '/' && pathname?.startsWith(i.href)))?.title || 'Dashboard'}</h2>
+                        <h2 className="text-3xl font-bold tracking-tight">
+                            {PARTNER_NAV.flatMap(g => g.items).find(i => i.href === pathname || (i.href !== '/' && pathname?.startsWith(i.href)))?.title || 'Dashboard'}
+                        </h2>
                         <div className="flex items-center space-x-2">
                             <button className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2">
                                 <span>Recent Range</span>

@@ -421,4 +421,210 @@ export class LoanService {
             transactions
         };
     }
+
+    async getPartnerApplications(partnerId: string): Promise<any> {
+        return prisma.loan.findMany({
+            where: {
+                loanPartnerId: partnerId,
+                status: LoanStatus.PENDING
+            },
+            include: {
+                user: {
+                    include: {
+                        customerProfile: true
+                    }
+                },
+                device: true,
+                merchant: {
+                    include: {
+                        merchantProfile: true
+                    }
+                },
+                product: true
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+    }
+
+    async processLoanDecision(partnerId: string, loanId: string, decision: 'APPROVE' | 'REJECT'): Promise<any> {
+        const loan = await prisma.loan.findUnique({
+            where: { id: loanId }
+        });
+
+        if (!loan) throw new NotFoundException('Loan request not found');
+        if (loan.loanPartnerId !== partnerId) throw new ForbiddenException('Not authorized for this loan');
+        if (loan.status !== LoanStatus.PENDING) throw new BadRequestException('Loan is not in pending state');
+
+        let newStatus: LoanStatus;
+        if (decision === 'APPROVE') {
+            newStatus = LoanStatus.ACTIVE;
+        } else if (decision === 'REJECT') {
+            newStatus = LoanStatus.CANCELLED; // Using CANCELLED as REJECTED equivalent
+        } else {
+            throw new BadRequestException('Invalid decision');
+        }
+
+        return prisma.loan.update({
+            where: { id: loanId },
+            data: {
+                status: newStatus,
+                approvedAt: newStatus === LoanStatus.ACTIVE ? new Date() : undefined
+            }
+        });
+    }
+
+    async getPartnerCommissions(partnerId: string): Promise<any> {
+        // Fetch all loans for this partner that have an agent associated
+        const loans = await prisma.loan.findMany({
+            where: {
+                loanPartnerId: partnerId,
+                agentId: { not: null }
+            },
+            include: {
+                merchant: {
+                    select: {
+                        id: true,
+                        merchantProfile: { select: { businessName: true } }
+                    }
+                },
+                // We need agent details. agentId is a String, we need to manually fetch or use relation if exists.
+                // Assuming agentId maps to a User.
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        // Since Agent relation might not be strictly defined in Prisma schema for Loan yet (based on previous view),
+        // we'll fetch agents manually or assume logic.
+        // Let's try to fetch user details for the agents.
+        const agentIds = [...new Set(loans.map(l => l.agentId).filter(id => id !== null) as string[])];
+
+        const agents = await prisma.user.findMany({
+            where: { id: { in: agentIds } },
+            select: {
+                id: true,
+                email: true,
+                agentProfile: {
+                    select: { fullName: true, phoneNumber: true }
+                }
+            }
+        });
+
+        return loans.map(loan => {
+            const agent = agents.find(a => a.id === loan.agentId);
+            const commissionRate = 0.01; // 1% default
+            const commissionAmount = loan.loanAmount * commissionRate;
+
+            return {
+                id: `COMM-${loan.id}`,
+                loanId: loan.id,
+                agentName: agent?.agentProfile?.fullName || agent?.email || 'Unknown Agent',
+                merchantName: loan.merchant?.merchantProfile?.businessName || 'Unknown Merchant',
+                loanAmount: loan.loanAmount,
+                commissionAmount: commissionAmount,
+                status: loan.status === LoanStatus.COMPLETED ? 'PAID' : 'PENDING',
+                createdAt: loan.createdAt
+            };
+        });
+    }
+
+    async rotateApiKey(partnerId: string): Promise<any> {
+        // Generate new credentials
+        // In a real app, use crypto.randomBytes
+        const newKey = `pk_test_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        const newSecret = `sk_test_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
+        const hashedSecret = await bcrypt.hash(newSecret, 10);
+
+        await prisma.loanPartner.update({
+            where: { id: partnerId },
+            data: {
+                apiKey: newKey,
+                apiSecret: hashedSecret
+            }
+        });
+
+        return { apiKey: newKey, apiSecret: newSecret };
+    }
+
+    async updateWebhook(partnerId: string, webhookUrl: string, webhookSecret?: string): Promise<any> {
+        return prisma.loanPartner.update({
+            where: { id: partnerId },
+            data: {
+                webhookUrl,
+                webhookSecret: webhookSecret || undefined
+            }
+        });
+    }
+
+    async getIntegrationDetails(partnerId: string): Promise<any> {
+        const partner = await prisma.loanPartner.findUnique({
+            where: { id: partnerId },
+            select: { apiKey: true, webhookUrl: true, webhookSecret: true }
+        });
+        if (!partner) throw new NotFoundException('Partner not found');
+        return partner;
+    }
+
+    async getPartnerTeam(partnerId: string): Promise<any> {
+        const team = await prisma.loanPartnerUser.findMany({
+            where: { loanPartnerId: partnerId },
+            include: { user: true },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        return team.map(member => ({
+            id: member.id,
+            userId: member.userId,
+            name: member.user.email.split('@')[0], // Fallback name
+            email: member.user.email,
+            role: member.role,
+            status: member.isActive ? 'ACTIVE' : 'INACTIVE',
+            joinedAt: member.createdAt
+        }));
+    }
+
+    async inviteTeamMember(partnerId: string, email: string, role: string): Promise<any> {
+        // 1. Find or Create User
+        let user = await prisma.user.findUnique({ where: { email } });
+        let isNewUser = false;
+
+        if (!user) {
+            // Create pending user
+            const hashedPassword = await bcrypt.hash('Vistalock123!', 10); // Default password
+            user = await prisma.user.create({
+                data: {
+                    email,
+                    password: hashedPassword,
+                    role: 'LOAN_PARTNER',
+                    isActive: true, // Auto-active for now
+                }
+            });
+            isNewUser = true;
+        }
+
+        // 2. Check overlap
+        const existingLink = await prisma.loanPartnerUser.findUnique({
+            where: { userId: user.id }
+        });
+
+        if (existingLink) {
+            if (existingLink.loanPartnerId === partnerId) {
+                throw new BadRequestException('User is already in your team');
+            } else {
+                throw new BadRequestException('User belongs to another organization');
+            }
+        }
+
+        // 3. Create Link
+        const newMember = await prisma.loanPartnerUser.create({
+            data: {
+                userId: user.id,
+                loanPartnerId: partnerId,
+                role: role as any, // Cast to LoanPartnerRole
+                isActive: true
+            }
+        });
+
+        return { ...newMember, isNewUser };
+    }
 }

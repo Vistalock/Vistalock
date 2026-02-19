@@ -58,4 +58,74 @@ export class LoanPartnerController {
         if (!partnerId) throw new ForbiddenException('Partner ID is required');
         return this.loanService.getPartnerMerchants(partnerId);
     }
+
+    @Get('applications')
+    @Roles(Role.LOAN_PARTNER)
+    getApplications(@Query('partnerId') partnerId: string) {
+        if (!partnerId) throw new ForbiddenException('Partner ID is required');
+        return this.loanService.getPartnerApplications(partnerId);
+    }
+
+    @Post('applications/decision')
+    @Roles(Role.LOAN_PARTNER)
+    processDecision(@Body() body: { partnerId: string; loanId: string; decision: 'APPROVE' | 'REJECT' }) {
+        if (!body.partnerId || !body.loanId || !body.decision) throw new ForbiddenException('Missing required fields');
+        return this.loanService.processLoanDecision(body.partnerId, body.loanId, body.decision);
+    }
+
+    @Get('commissions')
+    @Roles(Role.LOAN_PARTNER)
+    getCommissions(@Query('partnerId') partnerId: string) {
+        if (!partnerId) throw new ForbiddenException('Partner ID is required');
+        return this.loanService.getPartnerCommissions(partnerId);
+    }
+
+    @Get('disputes')
+    @Roles(Role.LOAN_PARTNER)
+    getDisputes(@Query('partnerId') partnerId: string) {
+        if (!partnerId) throw new ForbiddenException('Partner ID is required');
+        return this.loanService.getPartnerDisputes(partnerId);
+    }
+
+    @Post('disputes/resolve')
+    @Roles(Role.LOAN_PARTNER)
+    resolveDispute(@Body() body: { partnerId: string; disputeId: string; resolution: string; status: 'RESOLVED' | 'REJECTED' }) {
+        if (!body.partnerId || !body.disputeId || !body.status) throw new ForbiddenException('Missing required fields');
+        return this.loanService.resolveDispute(body.partnerId, body.disputeId, body.resolution, body.status);
+    }
+
+    @Get('integrations')
+    @Roles(Role.LOAN_PARTNER)
+    getIntegrations(@Query('partnerId') partnerId: string) {
+        if (!partnerId) throw new ForbiddenException('Partner ID is required');
+        return this.loanService.getIntegrationDetails(partnerId);
+    }
+
+    @Post('rotate-key')
+    @Roles(Role.LOAN_PARTNER)
+    rotateKey(@Body() body: { partnerId: string }) {
+        if (!body.partnerId) throw new ForbiddenException('Partner ID is required');
+        return this.loanService.rotateApiKey(body.partnerId);
+    }
+
+    @Post('webhook')
+    @Roles(Role.LOAN_PARTNER)
+    updateWebhook(@Body() body: { partnerId: string; webhookUrl: string; webhookSecret?: string }) {
+        if (!body.partnerId || !body.webhookUrl) throw new ForbiddenException('Missing required fields');
+        return this.loanService.updateWebhook(body.partnerId, body.webhookUrl, body.webhookSecret);
+    }
+
+    @Get('team')
+    @Roles(Role.LOAN_PARTNER)
+    getTeam(@Query('partnerId') partnerId: string) {
+        if (!partnerId) throw new ForbiddenException('Partner ID is required');
+        return this.loanService.getPartnerTeam(partnerId);
+    }
+
+    @Post('invite')
+    @Roles(Role.LOAN_PARTNER)
+    inviteMember(@Body() body: { partnerId: string; email: string; role: string }) {
+        if (!body.partnerId || !body.email || !body.role) throw new ForbiddenException('Missing required fields');
+        return this.loanService.inviteTeamMember(body.partnerId, body.email, body.role);
+    }
 }
