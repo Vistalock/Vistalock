@@ -32,16 +32,17 @@ export class AgentsService {
         branch: string;
         onboardingLimit?: number;
     }) {
-        // Check if phone number already exists for this merchant
-        const existing = await this.prisma.user.findFirst({
+        // Check if user already exists with this email or phone-based email
+        const emailToCheck = data.email || `${data.phoneNumber}@agent.vistalock.com`;
+
+        const existing = await this.prisma.user.findUnique({
             where: {
-                email: data.email || data.phoneNumber + '@agent.vistalock.com',
-                merchantId
+                email: emailToCheck
             }
         });
 
         if (existing) {
-            throw new ConflictException('Agent with this phone/email already exists');
+            throw new ConflictException('User with this email/phone already exists');
         }
 
         // Generate activation token
