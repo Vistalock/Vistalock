@@ -115,7 +115,7 @@ export default function LoginPage() {
                                     "Sign In"
                                 )}
                             </Button>
-                            <p className="text-xs text-center text-gray-400 mt-4">v1.1 - Fix 404</p>
+
                         </CardFooter>
                     </form>
                 </Card>
