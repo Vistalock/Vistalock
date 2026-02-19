@@ -43,4 +43,11 @@ export class LoanPartnerController {
         if (!partnerId) throw new ForbiddenException('Partner ID is required');
         return this.loanService.getPartnerWallet(partnerId);
     }
+
+    @Get('merchants')
+    @Roles(Role.LOAN_PARTNER)
+    getMerchants(@Query('partnerId') partnerId: string) {
+        if (!partnerId) throw new ForbiddenException('Partner ID is required');
+        return this.loanService.getPartnerMerchants(partnerId);
+    }
 }

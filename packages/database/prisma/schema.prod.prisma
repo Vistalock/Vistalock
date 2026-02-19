@@ -1,0 +1,750 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgres://vistalock_db_user:ss8KGJe1RFtxkPuBWAhfqiDABAiT2rob@dpg-d5rtjjh4tr6s738ej6l0-a.virginia-postgres.render.com/vistalock_db"
+}
+
+model AgentLoginLog {
+  id         String   @id
+  userId     String
+  deviceId   String?
+  ipAddress  String?
+  success    Boolean
+  failReason String?
+  createdAt  DateTime @default(now())
+  User       User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+model AgentProfile {
+  id                  String      @id
+  userId              String      @unique
+  fullName            String
+  phoneNumber         String
+  branch              String
+  onboardingLimit     Int         @default(0)
+  status              AgentStatus @default(PENDING)
+  activationToken     String?     @unique
+  activationExpiresAt DateTime?
+  deviceId            String?
+  isActivated         Boolean     @default(false)
+  lastLoginAt         DateTime?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime
+  User                User        @relation(fields: [userId], references: [id])
+}
+
+model AuditLog {
+  id         String   @id
+  action     String
+  entityId   String?
+  entityType String?
+  userId     String?
+  details    Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+  User       User?    @relation(fields: [userId], references: [id])
+}
+
+model Blacklist {
+  id          String    @id
+  nin         String?
+  bvn         String?
+  phoneNumber String?
+  reason      String
+  addedBy     String?
+  addedAt     DateTime  @default(now())
+  expiresAt   DateTime?
+  isActive    Boolean   @default(true)
+
+  @@index([bvn])
+  @@index([isActive])
+  @@index([nin])
+  @@index([phoneNumber])
+}
+
+model CreditCheck {
+  id             String   @id
+  checkId        String   @unique
+  merchantId     String
+  agentId        String
+  phoneNumber    String
+  nin            String
+  bvn            String?
+  requestedPrice Float
+  decision       String
+  score          Int
+  maxDeviceValue Float?
+  minDownPayment Float?
+  allowedTenure  String?
+  interestRate   Float?
+  creditRating   String?
+  reasonCode     String?
+  reasonMessage  String?
+  fraudDetected  Boolean  @default(false)
+  fraudReasons   String?
+  riskScore      Int?
+  createdAt      DateTime @default(now())
+
+  @@index([agentId])
+  @@index([createdAt])
+  @@index([merchantId])
+  @@index([nin])
+  @@index([phoneNumber])
+}
+
+model CustomerProfile {
+  id          String    @id
+  userId      String    @unique
+  phoneNumber String    @unique
+  bvn         String?   @unique
+  nin         String?   @unique
+  firstName   String?
+  lastName    String?
+  dateOfBirth DateTime?
+  address     String?
+  photoUrl    String?
+  kycStatus   KycStatus @default(PENDING)
+  creditScore Int?      @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  User        User      @relation(fields: [userId], references: [id])
+}
+
+model Device {
+  id                String             @id
+  imei              String             @unique
+  serialNumber      String?
+  model             String?
+  status            DeviceStatus       @default(PENDING_SETUP)
+  merchantId        String
+  lastHeartbeat     DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime
+  User              User               @relation(fields: [merchantId], references: [id])
+  EnrollmentBilling EnrollmentBilling?
+  Loan              Loan[]
+  LockEvent         LockEvent[]
+}
+
+model Dispute {
+  id           String        @id
+  loanId       String
+  paymentId    String?
+  merchantId   String
+  reason       String
+  description  String?
+  evidenceUrls Json?
+  status       DisputeStatus @default(OPEN)
+  resolution   String?
+  resolvedBy   String?
+  resolvedAt   DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime
+  Loan         Loan          @relation(fields: [loanId], references: [id])
+  User         User          @relation(fields: [merchantId], references: [id])
+  Payment      Payment?      @relation(fields: [paymentId], references: [id])
+
+  @@index([loanId])
+  @@index([merchantId])
+  @@index([status])
+}
+
+model EnrollmentBilling {
+  id             String    @id
+  merchantId     String
+  deviceId       String    @unique
+  amount         Decimal   @db.Decimal(10, 2)
+  tier           String
+  volumeAtTime   Int
+  status         String
+  paidAt         DateTime?
+  reversedAt     DateTime?
+  reversalReason String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime
+  Device         Device    @relation(fields: [deviceId], references: [id])
+  User           User      @relation(fields: [merchantId], references: [id])
+
+  @@index([createdAt])
+  @@index([deviceId])
+  @@index([merchantId])
+  @@index([status])
+}
+
+model Feature {
+  id                  String                @id
+  name                String
+  description         String
+  category            String
+  pricingType         String
+  price               Decimal               @db.Decimal(10, 2)
+  isActive            Boolean               @default(true)
+  metadata            Json?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime
+  FeatureSubscription FeatureSubscription[]
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model FeatureRequest {
+  id          String   @id
+  merchantId  String
+  title       String
+  description String
+  useCase     String?
+  budget      Decimal? @db.Decimal(10, 2)
+  status      String   @default("PENDING")
+  adminNotes  String?
+  quotedPrice Decimal? @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  User        User     @relation(fields: [merchantId], references: [id])
+
+  @@index([createdAt])
+  @@index([merchantId])
+  @@index([status])
+}
+
+model FeatureSubscription {
+  id          String    @id
+  merchantId  String
+  featureId   String
+  status      String    @default("ACTIVE")
+  startedAt   DateTime  @default(now())
+  cancelledAt DateTime?
+  Feature     Feature   @relation(fields: [featureId], references: [id])
+  User        User      @relation(fields: [merchantId], references: [id])
+
+  @@unique([merchantId, featureId])
+  @@index([featureId])
+  @@index([merchantId])
+  @@index([status])
+}
+
+model Loan {
+  id                         String        @id
+  userId                     String
+  customerNIN                String
+  customerBVN                String?
+  customerPhone              String
+  deviceIMEI                 String
+  productId                  String
+  merchantId                 String
+  agentId                    String?
+  loanAmount                 Float
+  downPayment                Float
+  monthlyRepayment           Float
+  tenure                     Int
+  interestRate               Float
+  totalRepayment             Float
+  status                     LoanStatus    @default(PENDING)
+  paymentsOnTime             Int           @default(0)
+  paymentsLate               Int           @default(0)
+  paymentsMissed             Int           @default(0)
+  totalPayments              Int           @default(0)
+  paidAmount                 Float         @default(0)
+  outstandingAmount          Float
+  nextPaymentDue             DateTime?
+  lastPaymentDate            DateTime?
+  lockCount                  Int           @default(0)
+  isLocked                   Boolean       @default(false)
+  lastLockedAt               DateTime?
+  lastUnlockedAt             DateTime?
+  creditCheckId              String?
+  creditScore                Int?
+  approvedAt                 DateTime?
+  completedAt                DateTime?
+  defaultedAt                DateTime?
+  createdAt                  DateTime      @default(now())
+  updatedAt                  DateTime
+  loanPartnerId              String?
+  Dispute                    Dispute[]
+  Device                     Device        @relation(fields: [deviceIMEI], references: [imei])
+  LoanPartner                LoanPartner?  @relation(fields: [loanPartnerId], references: [id])
+  User_Loan_merchantIdToUser User          @relation("Loan_merchantIdToUser", fields: [merchantId], references: [id])
+  Product                    Product       @relation(fields: [productId], references: [id])
+  User_Loan_userIdToUser     User          @relation("Loan_userIdToUser", fields: [userId], references: [id])
+  Payment                    Payment[]
+  Transaction                Transaction[]
+
+  @@index([customerBVN])
+  @@index([customerNIN])
+  @@index([customerPhone])
+  @@index([deviceIMEI])
+  @@index([merchantId])
+  @@index([nextPaymentDue])
+  @@index([status])
+  @@index([userId])
+}
+
+model LoanPartner {
+  id                      String             @id
+  name                    String
+  slug                    String
+  description             String?
+  logoUrl                 String?
+  apiKey                  String?            @unique
+  webhookSecret           String?
+  isActive                Boolean            @default(true)
+  supportedRepaymentTypes Json?
+  maxTenure               Int                @default(12)
+  minDownPaymentPct       Decimal            @default(30.0)
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime
+  apiSecret               String?
+  contactEmail            String?
+  contactName             String?
+  contactPhone            String?
+  merchantId              String?
+  status                  String             @default("ACTIVE")
+  webhookUrl              String?
+  Loan                    Loan[]
+  User                    User?              @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  LoanPartnerUser         LoanPartnerUser[]
+  LoanPartnerWallet       LoanPartnerWallet?
+  Product                 Product[]
+  RiskConfig              RiskConfig?
+  WebhookLog              WebhookLog[]
+
+  @@unique([merchantId, slug])
+  @@index([merchantId])
+  @@index([status])
+}
+
+model LoanPartnerUser {
+  id            String          @id
+  userId        String          @unique
+  loanPartnerId String
+  role          LoanPartnerRole @default(ANALYST)
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime
+  LoanPartner   LoanPartner     @relation(fields: [loanPartnerId], references: [id])
+  User          User            @relation(fields: [userId], references: [id])
+
+  @@index([loanPartnerId])
+  @@index([userId])
+}
+
+model LoanPartnerWallet {
+  id            String      @id
+  loanPartnerId String      @unique
+  balance       Decimal     @default(0) @db.Decimal(15, 2)
+  ledgerBalance Decimal     @default(0) @db.Decimal(15, 2)
+  currency      String      @default("NGN")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime
+  LoanPartner   LoanPartner @relation(fields: [loanPartnerId], references: [id])
+}
+
+model LockEvent {
+  id          String   @id
+  deviceImei  String
+  type        String
+  reason      String?
+  triggeredBy String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  Device      Device   @relation(fields: [deviceImei], references: [imei])
+
+  @@index([createdAt])
+  @@index([deviceImei])
+}
+
+model MerchantApplication {
+  id                  String            @id
+  businessName        String
+  tradingName         String?
+  businessType        String?
+  cacNumber           String?           @unique
+  dateOfIncorporation DateTime?
+  natureOfBusiness    String?
+  website             String?
+  contactName         String
+  email               String            @unique
+  phone               String            @unique
+  businessAddress     String
+  operatingAddress    String?
+  directors           Json?
+  signatories         Json?
+  bankDetails         Json?
+  operations          Json?
+  deviceDetails       Json?
+  agentDetails        Json?
+  documents           Json?
+  compliance          Json?
+  status              ApplicationStatus @default(PENDING)
+  processedBy         String?
+  rejectionReason     String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime
+  deletedAt           DateTime?
+  branches            Json?
+  lga                 String?
+  productDeclaration  Json?
+  reviews             Json?
+  state               String?
+  yearsInOperation    Int?
+}
+
+model MerchantProfile {
+  id                  String         @id
+  userId              String         @unique
+  businessName        String
+  businessType        BusinessType
+  rcNumber            String         @unique
+  dateOfIncorporation DateTime?
+  businessAddress     String
+  operatingAddress    String?
+  directorName        String
+  directorPhone       String
+  directorNin         String?
+  bankName            String?
+  accountNumber       String?
+  accountName         String?
+  revenueShare        Decimal        @default(0.0)
+  documents           Json?
+  agreementsSigned    Boolean        @default(false)
+  status              MerchantStatus @default(PENDING)
+  maxDevices          Int            @default(10)
+  maxAgents           Int            @default(2)
+  enabledDeviceTypes  Json?          @default("[\"ANDROID\"]")
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime
+  deletedAt           DateTime?
+  accentColor         String?        @default("#F59E0B")
+  companyName         String?
+  customDomain        String?        @unique
+  domainVerified      Boolean        @default(false)
+  faviconUrl          String?
+  logoUrl             String?
+  primaryColor        String?        @default("#4F46E5")
+  secondaryColor      String?        @default("#10B981")
+  sslEnabled          Boolean        @default(false)
+  User                User           @relation(fields: [userId], references: [id])
+}
+
+model MerchantWallet {
+  id                String              @id
+  merchantId        String              @unique
+  balance           Decimal             @default(0) @db.Decimal(15, 2)
+  currency          String              @default("NGN")
+  status            String              @default("ACTIVE")
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  User              User                @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  WalletTransaction WalletTransaction[]
+}
+
+model OtpRequest {
+  id          String   @id
+  phoneNumber String
+  code        String
+  expiresAt   DateTime
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Payment {
+  id            String        @id
+  loanId        String
+  amount        Float
+  dueDate       DateTime
+  paidDate      DateTime?
+  paidAmount    Float?
+  status        PaymentStatus @default(PENDING)
+  daysLate      Int           @default(0)
+  paymentMethod String?
+  reference     String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime
+  Dispute       Dispute[]
+  Loan          Loan          @relation(fields: [loanId], references: [id])
+
+  @@index([dueDate])
+  @@index([loanId])
+  @@index([status])
+}
+
+model PricingTier {
+  id             String   @id
+  name           String
+  minVolume      Int
+  maxVolume      Int?
+  pricePerDevice Decimal  @db.Decimal(10, 2)
+  currency       String   @default("NGN")
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime
+
+  @@index([isActive])
+  @@index([minVolume])
+}
+
+model Product {
+  id             String       @id
+  name           String
+  description    String?
+  sku            String?
+  price          Decimal      @default(0.0)
+  currency       String       @default("NGN")
+  minDownPayment Decimal      @default(0.0)
+  minTenure      Int          @default(3)
+  maxTenure      Int          @default(12)
+  interestRate   Decimal      @default(2.5)
+  stockQuantity  Int          @default(0)
+  category       String?
+  itemType       String?      @default("PHYSICAL")
+  merchantId     String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime
+  loanPartnerId  String?
+  financingMode  String?      @default("SELF")
+  Loan           Loan[]
+  LoanPartner    LoanPartner? @relation(fields: [loanPartnerId], references: [id])
+  User           User         @relation(fields: [merchantId], references: [id])
+}
+
+model RefreshToken {
+  id        String   @id
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revoked   Boolean  @default(false)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model RiskConfig {
+  id             String      @id
+  loanPartnerId  String      @unique
+  maxTicketSize  Decimal     @default(500000) @db.Decimal(12, 2)
+  minTicketSize  Decimal     @default(10000) @db.Decimal(12, 2)
+  maxTenor       Int         @default(6)
+  minCreditScore Int         @default(600)
+  autoApprove    Boolean     @default(false)
+  autoReject     Boolean     @default(true)
+  interestRate   Decimal     @default(5.0) @db.Decimal(5, 2)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime
+  LoanPartner    LoanPartner @relation(fields: [loanPartnerId], references: [id])
+}
+
+model SystemConfig {
+  id                   String   @id
+  defaultGracePeriod   Int      @default(3)
+  currency             String   @default("NGN")
+  strictMode           Boolean  @default(true)
+  offlineLocking       Boolean  @default(true)
+  emergencyPause       Boolean  @default(false)
+  supportEmail         String   @default("support@vistalock.com")
+  emergencyPhone       String   @default("+234 800 VISTA")
+  lockEscalationStages Json     @default("[\"REMINDER\", \"SOFT_LOCK\", \"FULL_LOCK\"]")
+  lockRetryFrequency   Int      @default(24)
+  offlineLockTimeout   Int      @default(168)
+  autoUnlockOnPayment  Boolean  @default(true)
+  supportedDeviceTypes Json     @default("[\"ANDROID\"]")
+  minAgentVersion      String   @default("1.0.0")
+  defaultInterestRate  Decimal  @default(0.0)
+  defaultMaxTenure     Int      @default(12)
+  complianceConfig     Json?
+  updatedAt            DateTime
+}
+
+model Transaction {
+  id         String            @id
+  amount     Decimal
+  currency   String            @default("NGN")
+  type       TransactionType
+  status     TransactionStatus @default(PENDING)
+  reference  String            @unique
+  loanId     String
+  merchantId String
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime
+  Loan       Loan              @relation(fields: [loanId], references: [id])
+  User       User              @relation(fields: [merchantId], references: [id])
+}
+
+model User {
+  id                         String                @id
+  email                      String                @unique
+  password                   String?
+  role                       Role                  @default(CUSTOMER)
+  isActive                   Boolean               @default(true)
+  apiKey                     String?               @unique
+  subscriptionPlan           SubscriptionPlan      @default(STARTER)
+  createdAt                  DateTime              @default(now())
+  updatedAt                  DateTime
+  merchantId                 String?
+  AgentLoginLog              AgentLoginLog[]
+  AgentProfile               AgentProfile?
+  AuditLog                   AuditLog[]
+  CustomerProfile            CustomerProfile?
+  Device                     Device[]
+  Dispute                    Dispute[]
+  EnrollmentBilling          EnrollmentBilling[]
+  FeatureRequest             FeatureRequest[]
+  FeatureSubscription        FeatureSubscription[]
+  Loan_Loan_merchantIdToUser Loan[]                @relation("Loan_merchantIdToUser")
+  Loan_Loan_userIdToUser     Loan[]                @relation("Loan_userIdToUser")
+  LoanPartner                LoanPartner[]
+  LoanPartnerUser            LoanPartnerUser?
+  MerchantProfile            MerchantProfile?
+  MerchantWallet             MerchantWallet?
+  Product                    Product[]
+  RefreshToken               RefreshToken[]
+  Transaction                Transaction[]
+  User                       User?                 @relation("UserToUser", fields: [merchantId], references: [id])
+  other_User                 User[]                @relation("UserToUser")
+  WalletTransaction          WalletTransaction[]
+}
+
+model WalletTransaction {
+  id             String         @id
+  walletId       String
+  merchantId     String
+  type           String
+  amount         Decimal        @db.Decimal(15, 2)
+  balanceBefore  Decimal        @db.Decimal(15, 2)
+  balanceAfter   Decimal        @db.Decimal(15, 2)
+  reference      String?
+  description    String
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  User           User           @relation(fields: [merchantId], references: [id])
+  MerchantWallet MerchantWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([merchantId])
+  @@index([type])
+  @@index([walletId])
+}
+
+model WebhookLog {
+  id            String      @id
+  loanPartnerId String
+  eventType     String
+  payload       Json
+  responseCode  Int
+  status        String
+  createdAt     DateTime    @default(now())
+  LoanPartner   LoanPartner @relation(fields: [loanPartnerId], references: [id])
+
+  @@index([createdAt])
+  @@index([loanPartnerId])
+}
+
+enum AgentStatus {
+  PENDING
+  ACTIVE
+  DEACTIVATED
+}
+
+enum ApplicationStatus {
+  PENDING
+  OPS_REVIEWED
+  RISK_REVIEWED
+  APPROVED
+  REJECTED
+}
+
+enum BusinessType {
+  SOLE_PROPRIETORSHIP
+  LIMITED_LIABILITY
+  ENTERPRISE
+}
+
+enum DeviceStatus {
+  LOCKED
+  UNLOCKED
+  PENDING_SETUP
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+enum KycStatus {
+  PENDING
+  VERIFIED
+  FAILED
+}
+
+enum LoanPartnerRole {
+  ADMIN
+  ANALYST
+  RISK_OFFICER
+  COLLECTIONS_MANAGER
+  FINANCE_OFFICER
+}
+
+enum LoanStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  DEFAULTED
+  LOCKED
+  CANCELLED
+}
+
+enum MerchantStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  LATE
+  MISSED
+  PARTIAL
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+  OPS_ADMIN
+  RISK_ADMIN
+  COMPLIANCE_ADMIN
+  TECH_ADMIN
+  SUPPORT_ADMIN
+  MERCHANT
+  MERCHANT_AGENT
+  CUSTOMER
+  FINANCE_ADMIN
+  LOAN_PARTNER
+}
+
+enum SubscriptionPlan {
+  STARTER
+  GROWTH
+  ENTERPRISE
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum TransactionType {
+  PAYMENT
+  DISBURSEMENT
+}

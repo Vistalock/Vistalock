@@ -24,7 +24,7 @@ export default function RiskControlsPage() {
     // For this demo, let's hardcode a valid UUID if possible, or expect backend to derive it.
     // My controller code: @Query('partnerId').
     // I should fix the controller to derive it from the USER, but for now I'll use a dummy ID.
-    const PARTNER_ID = "partner-123";
+    const PARTNER_ID = "4ac9f212-46d5-4602-b8d6-797c95c1179d";
 
     const { data: config, isLoading } = useQuery({
         queryKey: ['risk-config'],
