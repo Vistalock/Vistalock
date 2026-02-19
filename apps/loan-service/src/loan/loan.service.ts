@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { prisma, LoanStatus, PaymentStatus, DeviceStatus, KycStatus, TransactionStatus, TransactionType } from '@vistalock/database';
 import { PaymentProvider } from '../payments/payment.interface';
 import { NotificationService } from '../notifications/notification.service';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class LoanService {
@@ -23,7 +24,13 @@ export class LoanService {
             where: { apiKey }
         });
 
-        if (!partner || partner.apiSecret !== apiSecret) {
+        if (!partner || !partner.apiSecret) {
+            throw new UnauthorizedException('Invalid API Credentials');
+        }
+
+        // The apiSecret in DB is bcrypt-hashed — compare properly
+        const isSecretValid = await bcrypt.compare(apiSecret, partner.apiSecret);
+        if (!isSecretValid) {
             throw new UnauthorizedException('Invalid API Credentials');
         }
 
