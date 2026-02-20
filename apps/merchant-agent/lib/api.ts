@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Get API URLs from environment variables (or defaults)
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://vistalock-auth.onrender.com';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://vistalock-api.onrender.com';
 const CREDIT_API_URL = process.env.EXPO_PUBLIC_CREDIT_API_URL || 'http://192.168.100.45:3004';
 
 // Main API instance (Auth Service)
