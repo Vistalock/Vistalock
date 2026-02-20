@@ -1,35 +1,40 @@
 import { View, Text, StyleSheet, TouchableOpacity, Image, TextInput, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Shield } from 'lucide-react-native';
+import { Shield, Eye, EyeOff } from 'lucide-react-native';
 import { api } from '../lib/api';
 
 export default function LoginScreen() {
     const router = useRouter();
-    const [email, setEmail] = useState('agent@vistalock.com');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const handleLogin = async () => {
         setLoading(true);
         try {
+            const deviceId = '0fde829a5b09'; // Fallback to hardcoded for demo consistency
             await api.post('/auth/login', {
                 email,
                 password,
+                deviceId
             });
             router.replace('/dashboard');
         } catch (error: any) {
             console.error('Login failed:', error);
 
             if (error.response) {
-                // The request was made and the server responded with a status code
-                // that falls out of the range of 2xx
-                if (error.response.status === 401) {
+                // Display the REAL message from the backend if it exists, otherwise fall back to a generic message
+                const backendMessage = error.response.data?.message;
+                if (backendMessage) {
+                    alert(backendMessage);
+                } else if (error.response.status === 401) {
                     alert('Invalid credentials. Please check your email and password.');
                 } else if (error.response.status >= 500) {
                     alert('Server error. Please try again later.');
                 } else {
-                    alert(`Error: ${error.response.data?.message || 'Something went wrong'}`);
+                    alert(`Error: Something went wrong`);
                 }
             } else if (error.request) {
                 // The request was made but no response was received
@@ -70,13 +75,25 @@ export default function LoginScreen() {
 
                 <View style={styles.inputGroup}>
                     <Text style={styles.label}>Password</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={password}
-                        onChangeText={setPassword}
-                        placeholder="••••••••"
-                        secureTextEntry
-                    />
+                    <View style={styles.passwordContainer}>
+                        <TextInput
+                            style={styles.passwordInput}
+                            value={password}
+                            onChangeText={setPassword}
+                            placeholder="••••••••"
+                            secureTextEntry={!showPassword}
+                        />
+                        <TouchableOpacity
+                            onPress={() => setShowPassword(!showPassword)}
+                            style={styles.eyeIcon}
+                        >
+                            {showPassword ? (
+                                <EyeOff size={24} color="#64748B" />
+                            ) : (
+                                <Eye size={24} color="#64748B" />
+                            )}
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 <TouchableOpacity
@@ -148,6 +165,23 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#0F172A',
         backgroundColor: '#fff',
+    },
+    passwordContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderRadius: 12,
+        backgroundColor: '#fff',
+    },
+    passwordInput: {
+        flex: 1,
+        padding: 16,
+        fontSize: 16,
+        color: '#0F172A',
+    },
+    eyeIcon: {
+        padding: 16,
     },
     button: {
         backgroundColor: '#16A34A',

@@ -164,7 +164,7 @@ function ActivateAgentForm() {
                     </div>
 
                     <a
-                        href="https://expo.dev/artifacts/eas/sigX5AYfpdtE6dkPjUQwJC.apk"
+                        href="https://expo.dev/artifacts/eas/4k311YUH9Hzb7sY5pHtjup.apk"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block w-full bg-primary text-white py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors text-center"
