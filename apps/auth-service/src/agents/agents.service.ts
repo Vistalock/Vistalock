@@ -270,6 +270,20 @@ export class AgentsService {
     }
 
     /**
+     * Permanently delete agent (Hard Delete)
+     */
+    async permanentlyDeleteAgent(agentId: string, merchantId: string) {
+        // Verify ownership
+        await this.findOne(agentId, merchantId);
+
+        // Prisma will handle wiping the AgentProfile and LoginLogs due to onDelete: Cascade
+        // on the User relations, or we just delete the user.
+        return this.prisma.user.delete({
+            where: { id: agentId }
+        });
+    }
+
+    /**
      * Resend activation link (regenerate token)
      */
     async resendActivation(agentId: string, merchantId: string) {

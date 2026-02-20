@@ -96,6 +96,21 @@ export class AgentsController {
     }
 
     /**
+     * Permanently delete agent (Merchant only)
+     */
+    @UseGuards(AuthGuard('jwt'))
+    @Delete(':id/permanent')
+    async permanentlyDeleteAgent(@Request() req: any, @Param('id') agentId: string) {
+        const merchantId = req.user.tenantId;
+
+        if (!merchantId || req.user.role !== 'MERCHANT') {
+            throw new BadRequestException('Only merchants can delete agents');
+        }
+
+        return this.agentsService.permanentlyDeleteAgent(agentId, merchantId);
+    }
+
+    /**
      * Resend activation link (Merchant only)
      */
     @UseGuards(AuthGuard('jwt'))
