@@ -276,10 +276,18 @@ export class AgentsService {
         // Verify ownership
         await this.findOne(agentId, merchantId);
 
-        // Prisma will handle wiping the AgentProfile and LoginLogs due to onDelete: Cascade
-        // on the User relations, or we just delete the user.
-        return this.prisma.user.delete({
-            where: { id: agentId }
+        // Delete relations first since there is no onDelete: Cascade
+        return this.prisma.$transaction(async (tx) => {
+            await tx.refreshToken.deleteMany({ where: { userId: agentId } });
+            await tx.agentLoginLog.deleteMany({ where: { userId: agentId } });
+            await tx.auditLog.deleteMany({ where: { userId: agentId } });
+
+            const profile = await tx.agentProfile.findUnique({ where: { userId: agentId } });
+            if (profile) {
+                await tx.agentProfile.delete({ where: { userId: agentId } });
+            }
+
+            return tx.user.delete({ where: { id: agentId } });
         });
     }
 
