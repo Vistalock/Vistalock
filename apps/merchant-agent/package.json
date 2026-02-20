@@ -4,8 +4,8 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web"
   },
   "dependencies": {
@@ -25,6 +25,7 @@
     "expo-linking": "~8.0.11",
     "expo-router": "~6.0.22",
     "expo-status-bar": "~3.0.9",
+    "expo-updates": "~29.0.16",
     "lucide-react-native": "^0.563.0",
     "nativewind": "^4.0.1",
     "react-native-gesture-handler": "~2.28.0",
@@ -35,7 +36,9 @@
     "react-native-svg": "15.12.1",
     "react-native-worklets": "0.5.1",
     "semver": "7.7.3",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.1.18",
+    "react": "19.1.0",
+    "react-native": "0.81.5"
   },
   "peerDependencies": {
     "react": "*",
