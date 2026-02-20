@@ -11,12 +11,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(helmet());
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'https://vistalock-web-dashboard.vercel.app',
-      'https://vistalock-loan-partner-portal.vercel.app'
-    ],
+    origin: true, // Allow all origins (standard for mobile apps since they don't have a reliable 'origin' header)
     credentials: true,
   });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
