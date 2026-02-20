@@ -24,9 +24,295 @@ interface Agent {
     createdAt: string;
 }
 
+export default function AgentsPage() {
+    const { user } = useAuth();
+    const [agents, setAgents] = useState<Agent[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+    const [showUnbindModal, setShowUnbindModal] = useState(false);
+    const [showDeactivateModal, setShowDeactivateModal] = useState(false);
+    const [showPermanentDeleteModal, setShowPermanentDeleteModal] = useState(false);
+    const [showLogsModal, setShowLogsModal] = useState(false);
+
+    useEffect(() => {
+        fetchAgents();
+    }, []);
+
+    const fetchAgents = async () => {
+        try {
+            const response = await api.get('/agents');
+            setAgents(response.data);
+        } catch (error) {
+            console.error('Failed to fetch agents:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResendActivation = async (agentId: string) => {
+        try {
+            await api.post(`/agents/${agentId}/resend-activation`);
+            alert('Activation link sent successfully!');
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'Failed to resend activation');
+        }
+    };
+
+    const handleUnbindDevice = (agent: Agent) => {
+        setSelectedAgent(agent);
+        setShowUnbindModal(true);
+    };
+
+    const confirmUnbind = async () => {
+        if (!selectedAgent) return;
+        try {
+            await api.post(`/agents/${selectedAgent.id}/unbind-device`);
+            alert('Device unbound successfully!');
+            setShowUnbindModal(false);
+            fetchAgents();
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'Failed to unbind device');
+        }
+    };
+
+    const handleDeactivate = (agent: Agent) => {
+        setSelectedAgent(agent);
+        setShowDeactivateModal(true);
+    };
+
+    const confirmDeactivate = async () => {
+        if (!selectedAgent) return;
+        try {
+            await api.delete(`/agents/${selectedAgent.id}`);
+            alert('Agent deactivated successfully!');
+            setShowDeactivateModal(false);
+            fetchAgents();
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'Failed to deactivate agent');
+        }
+    };
+
+    const handlePermanentDelete = (agent: Agent) => {
+        setSelectedAgent(agent);
+        setShowPermanentDeleteModal(true);
+    };
+
+    const confirmPermanentDelete = async () => {
+        if (!selectedAgent) return;
+        try {
+            await api.delete(`/agents/${selectedAgent.id}/permanent`);
+            alert('Agent deleted permanently!');
+            setShowPermanentDeleteModal(false);
+            fetchAgents();
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'Failed to delete agent');
+        }
+    };
+
+    const handleViewLogs = (agent: Agent) => {
+        setSelectedAgent(agent);
+        setShowLogsModal(true);
+    };
+
+    const getStatusBadge = (status: string, isActivated: boolean) => {
+        if (status === 'DEACTIVATED') {
+            return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">Deactivated</span>;
+        }
+        if (isActivated) {
+            return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Active</span>;
+        }
+        return <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Pending Activation</span>;
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-gray-500">Loading agents...</div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Agents</h1>
+                    <p className="text-gray-600">Manage your field agents</p>
+                </div>
+                <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                    + Add Agent
+                </button>
+            </div>
+
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Branch</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Device</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Login</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Limit</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {agents.length === 0 ? (
+                                <tr>
+                                    <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                                        No agents yet. Click "Add Agent" to create your first agent.
+                                    </td>
+                                </tr>
+                            ) : (
+                                agents.map((agent) => (
+                                    <tr key={agent.id} className="hover:bg-gray-50">
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            <div className="text-sm font-medium text-gray-900">
+                                                {agent.agentProfile.fullName}
+                                            </div>
+                                            <div className="text-xs text-gray-500">{agent.email}</div>
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                            {agent.agentProfile.phoneNumber}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                            {agent.agentProfile.branch}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            {getStatusBadge(agent.agentProfile.status, agent.agentProfile.isActivated)}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap">
+                                            {agent.agentProfile.deviceId ? (
+                                                <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                                                    🔒 Bound
+                                                </span>
+                                            ) : (
+                                                <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600">
+                                                    Not Bound
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-500">
+                                            {agent.agentProfile.lastLoginAt
+                                                ? new Date(agent.agentProfile.lastLoginAt).toLocaleString('en-US', {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })
+                                                : 'Never'}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                            {agent.agentProfile.onboardingLimit}
+                                        </td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-xs">
+                                            <div className="flex flex-col gap-1">
+                                                <button
+                                                    onClick={() => handleViewLogs(agent)}
+                                                    className="text-blue-600 hover:text-blue-900 text-left"
+                                                >
+                                                    View Logs
+                                                </button>
+                                                {!agent.agentProfile.isActivated && (
+                                                    <button
+                                                        onClick={() => handleResendActivation(agent.id)}
+                                                        className="text-green-600 hover:text-green-900 text-left"
+                                                    >
+                                                        Resend
+                                                    </button>
+                                                )}
+                                                {agent.agentProfile.deviceId && (
+                                                    <button
+                                                        onClick={() => handleUnbindDevice(agent)}
+                                                        className="text-orange-600 hover:text-orange-900 text-left"
+                                                    >
+                                                        Unbind
+                                                    </button>
+                                                )}
+                                                {agent.agentProfile.status !== 'DEACTIVATED' && (
+                                                    <button
+                                                        onClick={() => handleDeactivate(agent)}
+                                                        className="text-red-600 hover:text-red-900 text-left"
+                                                    >
+                                                        Deactivate
+                                                    </button>
+                                                )}
+                                                {agent.agentProfile.status === 'DEACTIVATED' && (
+                                                    <button
+                                                        onClick={() => handlePermanentDelete(agent)}
+                                                        className="text-red-600 hover:text-red-900 text-left"
+                                                    >
+                                                        Delete Permanently
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {showCreateModal && (
+                <CreateAgentModal
+                    onClose={() => setShowCreateModal(false)}
+                    onSuccess={() => {
+                        setShowCreateModal(false);
+                        fetchAgents();
+                    }}
                 />
             )}
-        </div >
+
+            {showUnbindModal && selectedAgent && (
+                <ConfirmModal
+                    title="Unbind Device?"
+                    message={`Are you sure you want to unbind the device for ${selectedAgent.agentProfile.fullName}? They will be able to log in from a new device.`}
+                    onConfirm={confirmUnbind}
+                    onCancel={() => setShowUnbindModal(false)}
+                    confirmText="Unbind"
+                    confirmColor="orange"
+                />
+            )}
+
+            {showDeactivateModal && selectedAgent && (
+                <ConfirmModal
+                    title="Deactivate Agent?"
+                    message={`Are you sure you want to deactivate ${selectedAgent.agentProfile.fullName}? They will no longer be able to log in.`}
+                    onConfirm={confirmDeactivate}
+                    onCancel={() => setShowDeactivateModal(false)}
+                    confirmText="Deactivate"
+                    confirmColor="red"
+                />
+            )}
+
+            {showPermanentDeleteModal && selectedAgent && (
+                <ConfirmModal
+                    title="Delete Agent Permanently?"
+                    message={`Are you sure you want to permanently delete ${selectedAgent.agentProfile.fullName}? This action cannot be undone, and their login history will be lost. You will be able to reuse their email and phone number immediately.`}
+                    onConfirm={confirmPermanentDelete}
+                    onCancel={() => setShowPermanentDeleteModal(false)}
+                    confirmText="Delete"
+                    confirmColor="red"
+                />
+            )}
+
+            {showLogsModal && selectedAgent && (
+                <LoginLogsModal
+                    agentId={selectedAgent.id}
+                    agentName={selectedAgent.agentProfile.fullName}
+                    onClose={() => setShowLogsModal(false)}
+                />
+            )}
+        </div>
     );
 }
 
