@@ -234,6 +234,41 @@ export class LoanService {
             if (userProfile?.phoneNumber) {
                 // this.notificationService.sendDeviceUnlockAlert(userProfile.phoneNumber, loan.deviceIMEI);
             }
+
+            // Phase 6: Agent Commission Release
+            // When loan is completed, release the 30% withheld commission to the available balance
+            if (loan.agentId && loan.productId) {
+                const product = await prisma.product.findUnique({ where: { id: loan.productId } });
+                const agent = await prisma.user.findUnique({
+                    where: { id: loan.agentId },
+                    include: { agentProfile: true }
+                });
+
+                if (product && agent && agent.agentProfile && Number(product.agentCommission) > 0) {
+                    const commissionAmount = Number(product.agentCommission);
+                    const withheldSplit = commissionAmount * 0.30;
+
+                    await prisma.agentProfile.update({
+                        where: { id: agent.agentProfile.id },
+                        data: {
+                            withheldCommission: { decrement: withheldSplit },
+                            availableCommission: { increment: withheldSplit }
+                        }
+                    });
+
+                    await prisma.auditLog.create({
+                        data: {
+                            action: 'AGENT_COMMISSION_RELEASED',
+                            userId: agent.id,
+                            details: {
+                                loanId: loan.id,
+                                amountReleased: withheldSplit,
+                                trigger: 'LOAN_COMPLETED'
+                            }
+                        }
+                    });
+                }
+            }
         }
 
         // 4. Create Transaction Record (Settlement)

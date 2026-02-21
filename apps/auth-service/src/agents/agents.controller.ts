@@ -185,6 +185,64 @@ export class AgentsController {
             throw new BadRequestException('Only merchants can view login logs');
         }
 
-        return this.agentsService.getLoginLogs(agentId, merchantId);
+        const logs = this.agentsService.getLoginLogs(agentId, merchantId);
+        return logs;
+    }
+
+    // ==========================================
+    // Phase 4: Mobile App Specific Endpoints
+    // ==========================================
+
+    /**
+     * Unified New Sale API for Agent App
+     */
+    @UseGuards(AuthGuard('jwt'))
+    @Post('sales/new')
+    async createSale(@Request() req: any, @Body() body: any) {
+        const merchantId = req.user.tenantId || req.user.merchantId;
+        if (!merchantId || req.user.role !== 'MERCHANT_AGENT') {
+            throw new BadRequestException('Only agents can create sales directly through this flow');
+        }
+        return this.agentsService.createAgentSale(req.user.userId, merchantId, body);
+    }
+
+    /**
+     * Dashboard Stats for Agent App
+     */
+    @UseGuards(AuthGuard('jwt'))
+    @Get('dashboard')
+    async getDashboard(@Request() req: any) {
+        const merchantId = req.user.tenantId || req.user.merchantId;
+        return this.agentsService.getDashboardStats(req.user.userId, merchantId);
+    }
+
+    /**
+     * Customers for Agent App
+     */
+    @UseGuards(AuthGuard('jwt'))
+    @Get('customers')
+    async getCustomers(@Request() req: any) {
+        const merchantId = req.user.tenantId || req.user.merchantId;
+        return this.agentsService.getAgentCustomers(req.user.userId, merchantId);
+    }
+
+    /**
+     * Monitored Devices for Agent App
+     */
+    @UseGuards(AuthGuard('jwt'))
+    @Get('device-monitors')
+    async getDeviceMonitors(@Request() req: any) {
+        const merchantId = req.user.tenantId || req.user.merchantId;
+        return this.agentsService.getAgentDevices(req.user.userId, merchantId);
+    }
+
+    /**
+     * Notifications for Agent App
+     */
+    @UseGuards(AuthGuard('jwt'))
+    @Get('notifications')
+    async getNotifications(@Request() req: any) {
+        const merchantId = req.user.tenantId || req.user.merchantId;
+        return this.agentsService.getAgentNotifications(req.user.userId, merchantId);
     }
 }

@@ -105,6 +105,11 @@ model AgentProfile {
   onboardingLimit Int         @default(0)
   status          AgentStatus @default(PENDING)
 
+  // Commission Tracking (Phase 6)
+  totalCommissionEarned Decimal @default(0.0) @db.Decimal(15, 2)
+  availableCommission   Decimal @default(0.0) @db.Decimal(15, 2)
+  withheldCommission    Decimal @default(0.0) @db.Decimal(15, 2)
+
   // Security & Activation
   activationToken     String?   @unique
   activationExpiresAt DateTime?
@@ -408,7 +413,10 @@ model Product {
 
   // Inventory
   stockQuantity Int     @default(0)
-  category      String? // PHONE, LAPTOP, etc.
+  category      String? @default("OTHER") // ANDROID, IOS, TABLET, LAPTOP, OTHER
+
+  // Commission (Phase 6)
+  agentCommission Decimal @default(0.0) @db.Decimal(10, 2)
 
   itemType String? @default("PHYSICAL") // PHYSICAL, DIGITAL, SERVICE
 

@@ -27,7 +27,9 @@ export function ProductFormModal({ product, onClose }: ProductFormModalProps) {
         brand: '',
         model: '',
         osType: 'Android' as 'Android' | 'iOS',
+        category: 'ANDROID' as 'ANDROID' | 'IOS' | 'TABLET' | 'LAPTOP' | 'OTHER',
         retailPrice: '',
+        agentCommission: '',
         bnplEligible: true,
         maxTenureMonths: 6,
         downPayment: '',
@@ -47,7 +49,9 @@ export function ProductFormModal({ product, onClose }: ProductFormModalProps) {
                 brand: product.brand || '',
                 model: product.model || '',
                 osType: product.osType || 'Android',
+                category: product.category || 'ANDROID',
                 retailPrice: product.retailPrice?.toString() || '',
+                agentCommission: product.agentCommission?.toString() || '',
                 bnplEligible: product.bnplEligible ?? true,
                 maxTenureMonths: product.maxTenureMonths || 6,
                 downPayment: product.downPayment?.toString() || '',
@@ -80,6 +84,7 @@ export function ProductFormModal({ product, onClose }: ProductFormModalProps) {
             const payload = {
                 ...formData,
                 retailPrice: parseFloat(formData.retailPrice),
+                agentCommission: formData.agentCommission ? parseFloat(formData.agentCommission) : 0,
                 downPayment: formData.downPayment ? parseFloat(formData.downPayment) : null,
                 stockQuantity: formData.stockQuantity ? parseInt(formData.stockQuantity) : null,
             };
@@ -155,30 +160,51 @@ export function ProductFormModal({ product, onClose }: ProductFormModalProps) {
                             </div>
                         </div>
 
-                        <div>
-                            <Label htmlFor="osType" className="mb-2 block">Operating System *</Label>
-                            <Select
-                                value={formData.osType}
-                                onValueChange={(value: 'Android' | 'iOS') => setFormData({ ...formData, osType: value })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Android">Android</SelectItem>
-                                    <SelectItem value="iOS">iOS</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <Label htmlFor="osType" className="mb-2 block">Operating System *</Label>
+                                <Select
+                                    value={formData.osType}
+                                    onValueChange={(value: 'Android' | 'iOS') => setFormData({ ...formData, osType: value })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Android">Android</SelectItem>
+                                        <SelectItem value="iOS">iOS</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div>
+                                <Label htmlFor="category" className="mb-2 block">Category *</Label>
+                                <Select
+                                    value={formData.category}
+                                    onValueChange={(value: any) => setFormData({ ...formData, category: value })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="ANDROID">Android Phone</SelectItem>
+                                        <SelectItem value="IOS">iPhone / iOS</SelectItem>
+                                        <SelectItem value="TABLET">Tablet</SelectItem>
+                                        <SelectItem value="LAPTOP">Laptop</SelectItem>
+                                        <SelectItem value="OTHER">Other Accessories</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                     </div>
 
                     {/* Pricing */}
                     <div className="space-y-4">
-                        <h3 className="font-semibold text-lg">Pricing</h3>
+                        <h3 className="font-semibold text-lg">Pricing & Commission</h3>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <Label htmlFor="retailPrice" className="mb-2 block">Retail Price (Γéª) *</Label>
+                                <Label htmlFor="retailPrice" className="mb-2 block">Retail Price (₦) *</Label>
                                 <Input
                                     id="retailPrice"
                                     type="number"
@@ -190,133 +216,146 @@ export function ProductFormModal({ product, onClose }: ProductFormModalProps) {
                                 />
                             </div>
                             <div>
-                                <Label htmlFor="downPayment" className="mb-2 block">Down Payment (Γéª)</Label>
+                                <Label htmlFor="agentCommission" className="mb-2 block">Agent Commission (₦)</Label>
                                 <Input
-                                    id="downPayment"
+                                    id="agentCommission"
                                     type="number"
                                     step="0.01"
-                                    value={formData.downPayment}
-                                    onChange={(e) => setFormData({ ...formData, downPayment: e.target.value })}
-                                    placeholder="Optional"
+                                    value={formData.agentCommission}
+                                    onChange={(e) => setFormData({ ...formData, agentCommission: e.target.value })}
+                                    placeholder="0.00"
                                 />
                             </div>
                         </div>
-                    </div>
-
-                    {/* BNPL Settings */}
-                    <div className="space-y-4">
-                        <h3 className="font-semibold text-lg">BNPL Settings</h3>
-
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <Label>BNPL Eligible</Label>
-                                <p className="text-sm text-muted-foreground">Allow this product for BNPL sales</p>
-                            </div>
-                            <Switch
-                                checked={formData.bnplEligible}
-                                onCheckedChange={(checked) => setFormData({ ...formData, bnplEligible: checked })}
-                            />
-                        </div>
 
                         <div>
-                            <Label htmlFor="maxTenure" className="mb-2 block">Max Tenure (Months)</Label>
-                            <Select
-                                value={formData.maxTenureMonths.toString()}
-                                onValueChange={(value) => setFormData({ ...formData, maxTenureMonths: parseInt(value) })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((months) => (
-                                        <SelectItem key={months} value={months.toString()}>
-                                            {months} {months === 1 ? 'month' : 'months'}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <Label>Lock Support</Label>
-                                <p className="text-sm text-muted-foreground">Required for BNPL</p>
-                            </div>
-                            <Switch
-                                checked={formData.lockSupport}
-                                onCheckedChange={(checked) => setFormData({ ...formData, lockSupport: checked })}
-                            />
-                        </div>
-
-
-                        <div>
-                            <Label htmlFor="loanPartner" className="mb-2 block">Financing Partner</Label>
-                            <Select
-                                value={formData.loanPartnerId}
-                                onValueChange={(value) => setFormData({ ...formData, loanPartnerId: value })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a Partner" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {loanPartners.map((partner) => (
-                                        <SelectItem key={partner.id} value={partner.id}>
-                                            {partner.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Which entity funds this product's loans?
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Inventory */}
-                    <div className="space-y-4">
-                        <h3 className="font-semibold text-lg">Inventory (Optional)</h3>
-
-                        <div>
-                            <Label htmlFor="stockQuantity" className="mb-2 block">Stock Quantity</Label>
+                            <Label htmlFor="downPayment" className="mb-2 block">Down Payment (₦)</Label>
                             <Input
-                                id="stockQuantity"
+                                id="downPayment"
                                 type="number"
-                                value={formData.stockQuantity}
-                                onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
-                                placeholder="Leave empty for unlimited"
+                                step="0.01"
+                                value={formData.downPayment}
+                                onChange={(e) => setFormData({ ...formData, downPayment: e.target.value })}
+                                placeholder="Optional"
                             />
                         </div>
                     </div>
-
-                    {/* Status */}
-                    <div className="space-y-4">
-                        <h3 className="font-semibold text-lg">Availability</h3>
-
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <Label>Status</Label>
-                                <p className="text-sm text-muted-foreground">
-                                    {formData.status === 'active' ? 'Visible to agents' : 'Hidden from agents'}
-                                </p>
-                            </div>
-                            <Switch
-                                checked={formData.status === 'active'}
-                                onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? 'active' : 'inactive' })}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex justify-end gap-3 pt-4 border-t">
-                        <Button type="button" variant="outline" onClick={onClose}>
-                            Cancel
-                        </Button>
-                        <Button type="submit" disabled={loading}>
-                            {loading ? 'Saving...' : product ? 'Update Product' : 'Add Product'}
-                        </Button>
-                    </div>
-                </form>
             </div>
-        </div>
+
+            {/* BNPL Settings */}
+            <div className="space-y-4">
+                <h3 className="font-semibold text-lg">BNPL Settings</h3>
+
+                <div className="flex items-center justify-between">
+                    <div>
+                        <Label>BNPL Eligible</Label>
+                        <p className="text-sm text-muted-foreground">Allow this product for BNPL sales</p>
+                    </div>
+                    <Switch
+                        checked={formData.bnplEligible}
+                        onCheckedChange={(checked) => setFormData({ ...formData, bnplEligible: checked })}
+                    />
+                </div>
+
+                <div>
+                    <Label htmlFor="maxTenure" className="mb-2 block">Max Tenure (Months)</Label>
+                    <Select
+                        value={formData.maxTenureMonths.toString()}
+                        onValueChange={(value) => setFormData({ ...formData, maxTenureMonths: parseInt(value) })}
+                    >
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((months) => (
+                                <SelectItem key={months} value={months.toString()}>
+                                    {months} {months === 1 ? 'month' : 'months'}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="flex items-center justify-between">
+                    <div>
+                        <Label>Lock Support</Label>
+                        <p className="text-sm text-muted-foreground">Required for BNPL</p>
+                    </div>
+                    <Switch
+                        checked={formData.lockSupport}
+                        onCheckedChange={(checked) => setFormData({ ...formData, lockSupport: checked })}
+                    />
+                </div>
+
+
+                <div>
+                    <Label htmlFor="loanPartner" className="mb-2 block">Financing Partner</Label>
+                    <Select
+                        value={formData.loanPartnerId}
+                        onValueChange={(value) => setFormData({ ...formData, loanPartnerId: value })}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select a Partner" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {loanPartners.map((partner) => (
+                                <SelectItem key={partner.id} value={partner.id}>
+                                    {partner.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground mt-1">
+                        Which entity funds this product's loans?
+                    </p>
+                </div>
+            </div>
+
+            {/* Inventory */}
+            <div className="space-y-4">
+                <h3 className="font-semibold text-lg">Inventory (Optional)</h3>
+
+                <div>
+                    <Label htmlFor="stockQuantity" className="mb-2 block">Stock Quantity</Label>
+                    <Input
+                        id="stockQuantity"
+                        type="number"
+                        value={formData.stockQuantity}
+                        onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
+                        placeholder="Leave empty for unlimited"
+                    />
+                </div>
+            </div>
+
+            {/* Status */}
+            <div className="space-y-4">
+                <h3 className="font-semibold text-lg">Availability</h3>
+
+                <div className="flex items-center justify-between">
+                    <div>
+                        <Label>Status</Label>
+                        <p className="text-sm text-muted-foreground">
+                            {formData.status === 'active' ? 'Visible to agents' : 'Hidden from agents'}
+                        </p>
+                    </div>
+                    <Switch
+                        checked={formData.status === 'active'}
+                        onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? 'active' : 'inactive' })}
+                    />
+                </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button type="button" variant="outline" onClick={onClose}>
+                    Cancel
+                </Button>
+                <Button type="submit" disabled={loading}>
+                    {loading ? 'Saving...' : product ? 'Update Product' : 'Add Product'}
+                </Button>
+            </div>
+        </form>
+            </div >
+        </div >
     );
 }

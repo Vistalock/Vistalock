@@ -23,10 +23,17 @@
     },
     "web": {},
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d37fce29-884d-425d-a6f3-19ef415e9534"
+      }
     }
   }
 }

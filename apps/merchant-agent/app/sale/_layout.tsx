@@ -1,59 +1,45 @@
 import { Stack } from 'expo-router';
+import { SaleProvider } from './SaleContext';
 
 export default function SaleLayout() {
     return (
-        <Stack
-            screenOptions={{
-                headerShown: true,
-                headerStyle: {
-                    backgroundColor: '#007AFF',
-                },
-                headerTintColor: '#fff',
-                headerTitleStyle: {
-                    fontWeight: '600',
-                },
-            }}
-        >
-            <Stack.Screen
-                name="phone-verification"
-                options={{ title: 'Phone Verification' }}
-            />
-            <Stack.Screen
-                name="otp-verification"
-                options={{ title: 'OTP Verification' }}
-            />
-            <Stack.Screen
-                name="customer-details"
-                options={{ title: 'Customer Details' }}
-            />
-            <Stack.Screen
-                name="kyc-capture"
-                options={{ title: 'KYC Capture' }}
-            />
-            <Stack.Screen
-                name="credit-check"
-                options={{ title: 'Credit Check' }}
-            />
-            <Stack.Screen
-                name="device-selection"
-                options={{ title: 'Select Device' }}
-            />
-            <Stack.Screen
-                name="imei-capture"
-                options={{ title: 'IMEI Capture' }}
-            />
-            <Stack.Screen
-                name="loan-terms"
-                options={{ title: 'Loan Terms' }}
-            />
-            <Stack.Screen
-                name="consent"
-                options={{ title: 'Consent' }}
-            />
-            <Stack.Screen
-                name="device-release"
-                options={{ title: 'Device Release' }}
-            />
-        </Stack>
+        <SaleProvider>
+            <Stack
+                screenOptions={{
+                    headerShown: true,
+                    headerStyle: {
+                        backgroundColor: '#16A34A', // VistaLock Green
+                    },
+                    headerTintColor: '#fff',
+                    headerTitleStyle: {
+                        fontWeight: '600',
+                    },
+                    contentStyle: {
+                        backgroundColor: '#F8FAFC'
+                    }
+                }}
+            >
+                <Stack.Screen
+                    name="index"
+                    options={{ title: 'Step 1: Select Product', headerBackTitle: 'Cancel' }}
+                />
+                <Stack.Screen
+                    name="step2-scan"
+                    options={{ title: 'Step 2: Scan Device' }}
+                />
+                <Stack.Screen
+                    name="step3-customer"
+                    options={{ title: 'Step 3: Customer Details' }}
+                />
+                <Stack.Screen
+                    name="step4-payment"
+                    options={{ title: 'Step 4: Down Payment' }}
+                />
+                <Stack.Screen
+                    name="step5-submit"
+                    options={{ title: 'Step 5: Review & Submit' }}
+                />
+            </Stack>
+        </SaleProvider>
     );
 }

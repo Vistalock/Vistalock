@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, TextInput, ImageBackgr
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Shield, Eye, EyeOff } from 'lucide-react-native';
+import * as SecureStore from 'expo-secure-store';
 import { api } from '../lib/api';
 
 export default function LoginScreen() {
@@ -15,12 +16,17 @@ export default function LoginScreen() {
         setLoading(true);
         try {
             const deviceId = '0fde829a5b09'; // Fallback to hardcoded for demo consistency
-            await api.post('/auth/login', {
+            const response = await api.post('/auth/login', {
                 email,
                 password,
                 deviceId
             });
-            router.replace('/dashboard');
+
+            const token = response.data.token || response.data.accessToken;
+            if (token) {
+                await SecureStore.setItemAsync('userToken', token);
+            }
+            router.replace('/(tabs)');
         } catch (error: any) {
             console.error('Login failed:', error);
 

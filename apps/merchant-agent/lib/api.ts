@@ -1,4 +1,5 @@
 import axios from 'axios';
+import * as SecureStore from 'expo-secure-store';
 
 // Get API URLs from environment variables (or defaults)
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://vistalock-api.onrender.com';
@@ -26,11 +27,14 @@ export const creditApi = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
     async (config) => {
-        // TODO: Get token from secure storage
-        // const token = await SecureStore.getItemAsync('userToken');
-        // if (token) {
-        //   config.headers.Authorization = `Bearer ${token}`;
-        // }
+        try {
+            const token = await SecureStore.getItemAsync('userToken');
+            if (token) {
+                config.headers.Authorization = `Bearer ${token}`;
+            }
+        } catch (error) {
+            console.error('Failed to get token', error);
+        }
         return config;
     },
     (error) => Promise.reject(error)
@@ -46,8 +50,9 @@ api.interceptors.response.use(
     }
 );
 export const clearAuthToken = async () => {
-    // Placeholder for when SecureStore is available
-    // await SecureStore.deleteItemAsync('userToken');
+    try {
+        await SecureStore.deleteItemAsync('userToken');
+    } catch (e) { }
     api.defaults.headers.common['Authorization'] = '';
     return Promise.resolve();
 };

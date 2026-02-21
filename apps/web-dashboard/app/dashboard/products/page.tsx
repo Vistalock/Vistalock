@@ -32,7 +32,9 @@ interface Product {
     brand: string;
     model: string;
     osType: 'Android' | 'iOS';
+    category: 'ANDROID' | 'IOS' | 'TABLET' | 'LAPTOP' | 'OTHER';
     retailPrice: number;
+    agentCommission: number;
     bnplEligible: boolean;
     maxTenureMonths: number;
     downPayment: number | null;
@@ -193,8 +195,8 @@ export default function ProductsPage() {
                                 <TableRow>
                                     <TableHead>Product</TableHead>
                                     <TableHead>Brand/Model</TableHead>
-                                    <TableHead>OS</TableHead>
-                                    <TableHead>Price</TableHead>
+                                    <TableHead>Category/OS</TableHead>
+                                    <TableHead>Price & Comm.</TableHead>
                                     <TableHead>BNPL</TableHead>
                                     <TableHead>Stock</TableHead>
                                     <TableHead>Status</TableHead>
@@ -205,11 +207,21 @@ export default function ProductsPage() {
                                 {filteredProducts.map((product) => (
                                     <TableRow key={product.id}>
                                         <TableCell className="font-medium">{product.name}</TableCell>
-                                        <TableCell>{product.brand} {product.model}</TableCell>
+                                        <TableCell>{(product as any).brand} {(product as any).model}</TableCell>
                                         <TableCell>
-                                            <Badge variant="outline">{product.osType}</Badge>
+                                            <div className="flex flex-col gap-1 items-start">
+                                                <Badge variant="outline" className="text-[10px]">{(product as any).category || 'OTHER'}</Badge>
+                                                <Badge variant="secondary" className="text-[10px] uppercase">{(product as any).osType}</Badge>
+                                            </div>
                                         </TableCell>
-                                        <TableCell>{formatPrice(product.retailPrice)}</TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span>{formatPrice((product as any).retailPrice)}</span>
+                                                {(product as any).agentCommission ? (
+                                                    <span className="text-xs text-green-600 font-medium">Earns: {formatPrice((product as any).agentCommission)}</span>
+                                                ) : null}
+                                            </div>
+                                        </TableCell>
                                         <TableCell>
                                             {product.bnplEligible ? (
                                                 <Badge className="bg-green-500">Eligible</Badge>
