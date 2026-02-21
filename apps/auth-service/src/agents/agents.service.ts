@@ -488,7 +488,7 @@ export class AgentsService {
 
             // 8. Handle Agent Commission (Phase 6)
             const commissionAmount = Number(product.agentCommission);
-            if (commissionAmount > 0) {
+            if (commissionAmount > 0 && agent.agentProfile) {
                 const availableSplit = commissionAmount * 0.70;
                 const withheldSplit = commissionAmount * 0.30;
 
