@@ -240,121 +240,120 @@ export function ProductFormModal({ product, onClose }: ProductFormModalProps) {
                             />
                         </div>
                     </div>
-            </div>
 
-            {/* BNPL Settings */}
-            <div className="space-y-4">
-                <h3 className="font-semibold text-lg">BNPL Settings</h3>
+                    {/* BNPL Settings */}
+                    <div className="space-y-4">
+                        <h3 className="font-semibold text-lg">BNPL Settings</h3>
 
-                <div className="flex items-center justify-between">
-                    <div>
-                        <Label>BNPL Eligible</Label>
-                        <p className="text-sm text-muted-foreground">Allow this product for BNPL sales</p>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <Label>BNPL Eligible</Label>
+                                <p className="text-sm text-muted-foreground">Allow this product for BNPL sales</p>
+                            </div>
+                            <Switch
+                                checked={formData.bnplEligible}
+                                onCheckedChange={(checked) => setFormData({ ...formData, bnplEligible: checked })}
+                            />
+                        </div>
+
+                        <div>
+                            <Label htmlFor="maxTenure" className="mb-2 block">Max Tenure (Months)</Label>
+                            <Select
+                                value={formData.maxTenureMonths.toString()}
+                                onValueChange={(value) => setFormData({ ...formData, maxTenureMonths: parseInt(value) })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((months) => (
+                                        <SelectItem key={months} value={months.toString()}>
+                                            {months} {months === 1 ? 'month' : 'months'}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <Label>Lock Support</Label>
+                                <p className="text-sm text-muted-foreground">Required for BNPL</p>
+                            </div>
+                            <Switch
+                                checked={formData.lockSupport}
+                                onCheckedChange={(checked) => setFormData({ ...formData, lockSupport: checked })}
+                            />
+                        </div>
+
+
+                        <div>
+                            <Label htmlFor="loanPartner" className="mb-2 block">Financing Partner</Label>
+                            <Select
+                                value={formData.loanPartnerId}
+                                onValueChange={(value) => setFormData({ ...formData, loanPartnerId: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a Partner" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {loanPartners.map((partner) => (
+                                        <SelectItem key={partner.id} value={partner.id}>
+                                            {partner.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Which entity funds this product's loans?
+                            </p>
+                        </div>
                     </div>
-                    <Switch
-                        checked={formData.bnplEligible}
-                        onCheckedChange={(checked) => setFormData({ ...formData, bnplEligible: checked })}
-                    />
-                </div>
 
-                <div>
-                    <Label htmlFor="maxTenure" className="mb-2 block">Max Tenure (Months)</Label>
-                    <Select
-                        value={formData.maxTenureMonths.toString()}
-                        onValueChange={(value) => setFormData({ ...formData, maxTenureMonths: parseInt(value) })}
-                    >
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((months) => (
-                                <SelectItem key={months} value={months.toString()}>
-                                    {months} {months === 1 ? 'month' : 'months'}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+                    {/* Inventory */}
+                    <div className="space-y-4">
+                        <h3 className="font-semibold text-lg">Inventory (Optional)</h3>
 
-                <div className="flex items-center justify-between">
-                    <div>
-                        <Label>Lock Support</Label>
-                        <p className="text-sm text-muted-foreground">Required for BNPL</p>
+                        <div>
+                            <Label htmlFor="stockQuantity" className="mb-2 block">Stock Quantity</Label>
+                            <Input
+                                id="stockQuantity"
+                                type="number"
+                                value={formData.stockQuantity}
+                                onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
+                                placeholder="Leave empty for unlimited"
+                            />
+                        </div>
                     </div>
-                    <Switch
-                        checked={formData.lockSupport}
-                        onCheckedChange={(checked) => setFormData({ ...formData, lockSupport: checked })}
-                    />
-                </div>
 
+                    {/* Status */}
+                    <div className="space-y-4">
+                        <h3 className="font-semibold text-lg">Availability</h3>
 
-                <div>
-                    <Label htmlFor="loanPartner" className="mb-2 block">Financing Partner</Label>
-                    <Select
-                        value={formData.loanPartnerId}
-                        onValueChange={(value) => setFormData({ ...formData, loanPartnerId: value })}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select a Partner" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {loanPartners.map((partner) => (
-                                <SelectItem key={partner.id} value={partner.id}>
-                                    {partner.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground mt-1">
-                        Which entity funds this product's loans?
-                    </p>
-                </div>
-            </div>
-
-            {/* Inventory */}
-            <div className="space-y-4">
-                <h3 className="font-semibold text-lg">Inventory (Optional)</h3>
-
-                <div>
-                    <Label htmlFor="stockQuantity" className="mb-2 block">Stock Quantity</Label>
-                    <Input
-                        id="stockQuantity"
-                        type="number"
-                        value={formData.stockQuantity}
-                        onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
-                        placeholder="Leave empty for unlimited"
-                    />
-                </div>
-            </div>
-
-            {/* Status */}
-            <div className="space-y-4">
-                <h3 className="font-semibold text-lg">Availability</h3>
-
-                <div className="flex items-center justify-between">
-                    <div>
-                        <Label>Status</Label>
-                        <p className="text-sm text-muted-foreground">
-                            {formData.status === 'active' ? 'Visible to agents' : 'Hidden from agents'}
-                        </p>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <Label>Status</Label>
+                                <p className="text-sm text-muted-foreground">
+                                    {formData.status === 'active' ? 'Visible to agents' : 'Hidden from agents'}
+                                </p>
+                            </div>
+                            <Switch
+                                checked={formData.status === 'active'}
+                                onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? 'active' : 'inactive' })}
+                            />
+                        </div>
                     </div>
-                    <Switch
-                        checked={formData.status === 'active'}
-                        onCheckedChange={(checked) => setFormData({ ...formData, status: checked ? 'active' : 'inactive' })}
-                    />
-                </div>
-            </div>
 
-            {/* Actions */}
-            <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={onClose}>
-                    Cancel
-                </Button>
-                <Button type="submit" disabled={loading}>
-                    {loading ? 'Saving...' : product ? 'Update Product' : 'Add Product'}
-                </Button>
-            </div>
-        </form>
+                    {/* Actions */}
+                    <div className="flex justify-end gap-3 pt-4 border-t">
+                        <Button type="button" variant="outline" onClick={onClose}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={loading}>
+                            {loading ? 'Saving...' : product ? 'Update Product' : 'Add Product'}
+                        </Button>
+                    </div>
+                </form>
             </div >
         </div >
     );
